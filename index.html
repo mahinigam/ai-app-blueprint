@@ -1695,10 +1695,12 @@ const MASTER_QUIZ_QUESTIONS = [
         }
 
         function escapeHtml(str) {
-            return str
+            return String(str)
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
 
         async function copyCurrentCode() {
@@ -1714,9 +1716,13 @@ const MASTER_QUIZ_QUESTIONS = [
                     temp.style.position = 'fixed';
                     temp.style.opacity = '0';
                     document.body.appendChild(temp);
-                    temp.select();
-                    const copied = document.execCommand('copy');
-                    document.body.removeChild(temp);
+                    let copied = false;
+                    try {
+                        temp.select();
+                        copied = document.execCommand('copy');
+                    } finally {
+                        temp.remove();
+                    }
                     if (!copied) throw new Error('Clipboard fallback was blocked');
                 }
                 if (btn) {
@@ -2244,7 +2250,7 @@ const MASTER_QUIZ_QUESTIONS = [
             });
 
             drawCanvasCaption("EVIDENCE CANDIDATES", cx, cy + 72, w - 28, "center", true);
-            const docLabels = ["DOC · 014", "DOC · 027", "DOC · 031", "DOC · 108", "DOC · 204", "DOC · 219"];
+            const docLabels = ["DOC · 100", "DOC · 102", "DOC · 104", "DOC · 106", "DOC · 108", "DOC · 110"];
             const chipW = Math.min(90, (w - 52 - 5 * 8) / 6);
             const chipGap = (w - chipW * 6) / 7;
             docLabels.forEach((label, i) => {
