@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="An interactive, monochrome field guide to AI engineering: context and retrieval, latency and cost, evaluation, security, and controlled tool use.">
+    <meta name="theme-color" content="#050505">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AI App Blueprint — Practical AI Engineering">
+    <meta property="og:description" content="Learn the engineering decisions behind AI applications through interactive diagrams, code examples, incident drills, and practical ship checklists.">
+    <meta property="og:url" content="https://ai-app-blueprint-six.vercel.app/">
+    <meta name="twitter:card" content="summary">
     <title>AI App Blueprint — Practical AI Engineering</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -219,7 +226,7 @@
 
                 <!-- Module Switcher -->
                 <nav class="module-navigation flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar" id="moduleNav" aria-label="Learning modules">
-                    <button onclick="selectModule(0)" id="nav-0" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(0)" id="nav-0" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         00. START HERE
                     </button>
                     <button onclick="selectModule(1)" id="nav-1" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
@@ -264,10 +271,10 @@
                     </p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="prevModule()" class="px-3 py-2 border border-dashed border-zinc-600 hover:border-white font-mono-tech text-xs text-zinc-300 hover:text-white transition">
+                    <button onclick="prevModule()" aria-label="Previous learning module" class="min-h-10 px-3 py-2 border border-dashed border-zinc-600 hover:border-white font-mono-tech text-xs text-zinc-300 hover:text-white transition">
                         &larr; PREV
                     </button>
-                    <button onclick="nextModule()" class="px-4 py-2 bg-white text-black font-mono-tech text-xs font-bold hover:bg-zinc-200 transition">
+                    <button onclick="nextModule()" aria-label="Next learning module" class="min-h-10 px-4 py-2 bg-white text-black font-mono-tech text-xs font-bold hover:bg-zinc-200 transition">
                         NEXT MODULE &rarr;
                     </button>
                 </div>
@@ -285,10 +292,10 @@
                         <div class="flex items-center gap-2">
                             <span class="w-2 h-2 bg-white inline-block"></span>
                             <span class="font-mono-tech text-xs uppercase tracking-wider text-zinc-300" id="visualizerHeaderTitle">
-                                INTERACTIVE VECTOR & NODE SCHEMATIC
+                                INTERACTIVE ENGINEERING SCHEMATIC
                             </span>
                         </div>
-                        <div class="flex items-center gap-2" id="visualizerControls">
+                        <div class="visualizer-controls flex flex-wrap items-center gap-2 max-w-full" id="visualizerControls" aria-label="Schematic controls">
                             <!-- Dynamically populated controls per module -->
                         </div>
                     </div>
@@ -392,12 +399,12 @@
         </div>
     </footer>
 
-    <div id="quizModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="blueprint-card max-w-2xl w-full p-6 bg-black border border-white space-y-5">
+    <div id="quizModal" role="dialog" aria-modal="true" aria-labelledby="quizModalTitle" tabindex="-1" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="blueprint-card max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 bg-black border border-white space-y-5">
             <div class="flex items-center justify-between border-b border-dashed border-zinc-700 pb-3">
                 <div>
                     <span class="font-mono-tech text-xs text-zinc-400">// PRODUCTION INCIDENT SIMULATOR</span>
-                    <h3 class="font-mono-tech text-lg font-bold text-white">AI ARCHITECTURE TROUBLESHOOTING DRILL</h3>
+                    <h3 id="quizModalTitle" class="font-mono-tech text-lg font-bold text-white">AI ARCHITECTURE TROUBLESHOOTING DRILL</h3>
                 </div>
                 <button onclick="closeMasterQuizModal()" class="font-mono-tech text-xs px-2.5 py-1 border border-zinc-700 hover:border-white">
                     [ESC / CLOSE]
@@ -1261,6 +1268,7 @@ const MASTER_QUIZ_QUESTIONS = [
         let currentModuleIndex = 0;
         let currentDetailTab = 'atoz';
         let animationFrameId = null;
+        let quizReturnFocus = null;
 
         // Interactive Simulator States per Module
         const simState = {
@@ -1605,10 +1613,10 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (index === 0) {
                 ctrl.innerHTML = `
-                    <button onclick="toggleMod0Collapse(false)" class="px-2.5 py-1 text-xs font-mono-tech border border-dashed ${!simState.mod0Collapsed ? 'bg-white text-black border-white font-bold' : 'border-zinc-600 text-zinc-300'}">
+                    <button onclick="toggleMod0Collapse(false)" class="min-h-9 px-2.5 py-1 text-xs font-mono-tech border border-dashed ${!simState.mod0Collapsed ? 'bg-white text-black border-white font-bold' : 'border-zinc-600 text-zinc-300'}">
                         [TOOL ECOSYSTEM]
                     </button>
-                    <button onclick="toggleMod0Collapse(true)" class="px-2.5 py-1 text-xs font-mono-tech border border-dashed ${simState.mod0Collapsed ? 'bg-white text-black border-white font-bold' : 'border-zinc-600 text-zinc-300'}">
+                    <button onclick="toggleMod0Collapse(true)" class="min-h-9 px-2.5 py-1 text-xs font-mono-tech border border-dashed ${simState.mod0Collapsed ? 'bg-white text-black border-white font-bold' : 'border-zinc-600 text-zinc-300'}">
                         [SHOW ENGINEERING LENSES]
                     </button>
                 `;
@@ -1676,6 +1684,12 @@ const MASTER_QUIZ_QUESTIONS = [
                     `).join('')}
                 `;
             }
+
+            ctrl.querySelectorAll('button').forEach(button => {
+                const selected = button.classList.contains('bg-white') && button.classList.contains('text-black');
+                button.setAttribute('aria-pressed', String(selected));
+                button.classList.add('min-h-9');
+            });
         }
 
         // Control Handlers
@@ -2287,15 +2301,21 @@ const MASTER_QUIZ_QUESTIONS = [
 
         function openMasterQuizModal() {
             const modal = document.getElementById('quizModal');
+            quizReturnFocus = document.activeElement;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             renderQuizQuestions();
+            const firstControl = modal.querySelector('button');
+            if (firstControl) firstControl.focus();
         }
 
         function closeMasterQuizModal() {
             const modal = document.getElementById('quizModal');
+            if (!modal || modal.classList.contains('hidden')) return;
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+            if (quizReturnFocus && typeof quizReturnFocus.focus === 'function') quizReturnFocus.focus();
+            quizReturnFocus = null;
         }
 
         function renderQuizQuestions() {
@@ -2305,12 +2325,12 @@ const MASTER_QUIZ_QUESTIONS = [
                     <div class="font-mono-tech text-xs font-bold text-white">${q.question}</div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         ${q.options.map((opt, oIdx) => `
-                            <button onclick="checkQuizAnswer(${qIdx}, ${oIdx})" id="q-${qIdx}-opt-${oIdx}" class="text-left p-2 border border-dashed border-zinc-700 hover:border-white text-xs font-mono-tech text-zinc-300 transition">
+                            <button onclick="checkQuizAnswer(${qIdx}, ${oIdx})" id="q-${qIdx}-opt-${oIdx}" aria-describedby="q-${qIdx}-feedback" class="text-left p-3 min-h-11 border border-dashed border-zinc-700 hover:border-white text-xs font-mono-tech text-zinc-300 transition">
                                 [${String.fromCharCode(65 + oIdx)}] ${opt}
                             </button>
                         `).join('')}
                     </div>
-                    <div id="q-${qIdx}-feedback" class="hidden text-xs font-mono-tech p-2.5 border border-dashed"></div>
+                    <div id="q-${qIdx}-feedback" aria-live="polite" class="hidden text-xs font-mono-tech p-2.5 border border-dashed"></div>
                 </div>
             `).join('');
         }
