@@ -166,7 +166,7 @@ test("dynamic HTML and clipboard fallback cleanup are hardened", () => {
   const escapeEnd = html.indexOf("async function copyCurrentCode", escapeStart);
   assert.ok(escapeStart >= 0 && escapeEnd > escapeStart, "HTML escaping helper exists");
   const escapeFn = html.slice(escapeStart, escapeEnd);
-  for (const entity of ['"&quot;"', "'&#39;'"]) {
+  for (const entity of ['"&quot;"', '"&#39;"']) {
     assert.ok(escapeFn.includes(entity), "HTML escaping should encode " + entity);
   }
   const copyStart = html.indexOf("async function copyCurrentCode");
