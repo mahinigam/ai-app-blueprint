@@ -464,19 +464,31 @@
                     snippet: `from dataclasses import dataclass
 from typing import List, Dict, Any
 
-@dataclass
-class AIRequest:
+@dataclass(frozen=True)
+class AuthenticatedPrincipal:
     user_id: str
+    tenant_id: str
+    permissions: set[str]
+
+@dataclass(frozen=True)
+class AIRequest:
+    # Injected by verified server-side session/token middleware, not raw request JSON.
+    principal: AuthenticatedPrincipal
     query: str
 
 def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
-    # 4A. INPUT GUARDRAIL: Block prompt injection & scrub PII first
+    # 4A. INPUT POLICY: apply tested checks; filters are not an authorization boundary
     if not input_guardrail_check(req.query):
         return {"error": "Blocked by input safety policy."}
 
-    # 1. GIVE IT CONTEXT (RAG): Semantic search via embeddings
+    # 1. RETRIEVAL: scope every search to the authenticated principal.
     query_vector = embed_text(req.query)
-    relevant_chunks = vector_db.search(query_vector, top_k=5)
+    relevant_chunks = vector_db.search(
+        query_vector,
+        tenant_id=req.principal.tenant_id,
+        allowed_permissions=req.principal.permissions,
+        top_k=5,
+    )
 
     # 2. CUT THE COST: Route by complexity & reuse cached system prefix
     model_tier = route_query_complexity(req.query) # 'small' | 'medium' | 'big'
@@ -485,14 +497,14 @@ def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
         cached_prefix=STATIC_SYSTEM_INSTRUCTIONS,
         context=relevant_chunks,
         user_query=req.query,
-        tools=REGISTERED_TOOLS # 5. TOOLS + AGENTS
+        tools=tool_registry.allowed_for(req.principal) # least privilege
     )
 
-    # 4B. OUTPUT GUARDRAIL: Verify grounding & schema before user sees it
+    # 4B. OUTPUT POLICY: verify schema, business rules, and source support
     verified_output = output_guardrail_check(response, relevant_chunks)
 
-    # 3. MEASURE IT (EVALS): Async log trace for LLM-as-Judge scoring
-    async_log_for_evals(req.query, relevant_chunks, verified_output)
+    # 3. EVALUATION: log privacy-aware traces and queue versioned eval cases
+    trace.record(req.principal.user_id, source_ids=[c.source_id for c in relevant_chunks], model=model_tier)
     return {"answer": verified_output, "model_used": model_tier}`
                 },
                 interviews: [
