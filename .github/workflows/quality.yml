@@ -2,15 +2,16 @@ name: Static quality checks
 
 on:
   push:
-    branches: [main, final-quality-overhaul]
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  static-quality:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
