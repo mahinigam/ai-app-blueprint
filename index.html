@@ -309,8 +309,8 @@
                     </div>
 
                     <!-- Interactive Visualizer Container -->
-                    <div id="visualizerStage" class="relative w-full h-[390px] sm:h-[430px] bg-black border border-dashed border-zinc-800 overflow-hidden select-none flex items-center justify-center">
-                        <canvas id="schematicCanvas" role="img" aria-label="Interactive schematic for the selected AI engineering module. The right-hand panel provides the textual explanation." class="w-full h-full block"></canvas>
+                    <div id="visualizerStage" class="relative w-full h-[390px] sm:h-[430px] bg-black bg-dot-matrix border border-dashed border-zinc-800 overflow-hidden select-none flex items-center justify-center">
+                        <canvas id="schematicCanvas" role="img" aria-label="Responsive engineering diagram. Nodes show the main stages, arrows show direction, highlighted nodes reflect the selected simulation, and the detail panel explains the design." class="w-full h-full block"></canvas>
                         <!-- HTML Overlay for interactive DOM controls/tooltips inside the schematic -->
                         <div id="canvasOverlay" class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between"></div>
                     </div>
@@ -1921,28 +1921,90 @@ const MASTER_QUIZ_QUESTIONS = [
             ctx.restore();
         }
 
-        function drawTechBox(x, y, w, h, label, sublabel = "", highlighted = false, dashed = true) {
+        function wrapCanvasText(text, maxWidth, font, maxLines = 2) {
             ctx.save();
-            ctx.fillStyle = highlighted ? "#ffffff" : "#070707";
-            ctx.strokeStyle = highlighted ? "#ffffff" : "rgba(255, 255, 255, 0.7)";
-            ctx.lineWidth = highlighted ? 2 : 1.2;
-            if (dashed && !highlighted) ctx.setLineDash([4, 3]);
+            ctx.font = font;
+            const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+            if (!words.length) { ctx.restore(); return []; }
+            const lines = [];
+            let line = "";
+            let truncated = false;
+            for (let i = 0; i < words.length; i++) {
+                const candidate = line ? line + " " + words[i] : words[i];
+                if (ctx.measureText(candidate).width <= maxWidth) { line = candidate; continue; }
+                if (line) { lines.push(line); line = words[i]; }
+                else { line = words[i]; }
+                if (lines.length === maxLines) { truncated = true; break; }
+            }
+            if (line && lines.length < maxLines) lines.push(line);
+            if (lines.length > maxLines) lines.length = maxLines;
+            if (truncated && lines.length) {
+                let last = lines[lines.length - 1];
+                while (last.length > 1 && ctx.measureText(last + "…").width > maxWidth) last = last.slice(0, -1);
+                lines[lines.length - 1] = last + "…";
+            }
+            ctx.restore();
+            return lines.slice(0, maxLines);
+        }
+
+        function drawTechBox(x, y, w, h, label, sublabel = "", highlighted = false, dashed = true) {
+            const inset = Math.max(7, Math.min(12, w * 0.08));
+            const maxTextWidth = Math.max(20, w - inset * 2);
+            const labelSize = Math.max(8, Math.min(11, w * 0.075));
+            const subSize = Math.max(7, Math.min(8.5, w * 0.058));
+            const labelFont = "600 " + labelSize + "px 'JetBrains Mono', monospace";
+            const subFont = subSize + "px 'JetBrains Mono', monospace";
+            const labelLines = wrapCanvasText(label, maxTextWidth, labelFont, h >= 40 ? 2 : 1);
+            const subLines = sublabel && h >= 39 ? wrapCanvasText(sublabel, maxTextWidth, subFont, h >= 60 ? 2 : 1) : [];
+            const labelLineHeight = labelSize + 2;
+            const subLineHeight = subSize + 2;
+            const gap = subLines.length ? 3 : 0;
+            const textHeight = labelLines.length * labelLineHeight + gap + subLines.length * subLineHeight;
+            const top = y - textHeight / 2;
+
+            ctx.save();
+            ctx.fillStyle = highlighted ? "#f4f4f5" : "rgba(8, 8, 8, 0.96)";
+            ctx.strokeStyle = highlighted ? "#f4f4f5" : "rgba(212, 212, 216, 0.52)";
+            ctx.lineWidth = highlighted ? 1.6 : 1;
+            if (dashed && !highlighted) ctx.setLineDash([3, 3]);
             ctx.fillRect(x - w / 2, y - h / 2, w, h);
             ctx.strokeRect(x - w / 2, y - h / 2, w, h);
-
-            // Corner ticks
             ctx.setLineDash([]);
-            ctx.fillStyle = highlighted ? "#000000" : "#ffffff";
-            ctx.font = "bold 11px 'JetBrains Mono', monospace";
+            ctx.strokeStyle = highlighted ? "#18181b" : "rgba(255,255,255,0.42)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - w / 2 + 7, y - h / 2 + 6);
+            ctx.lineTo(x - w / 2 + 15, y - h / 2 + 6);
+            ctx.stroke();
+
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(label, x, sublabel ? y - 6 : y);
+            ctx.font = labelFont;
+            ctx.fillStyle = highlighted ? "#09090b" : "#f4f4f5";
+            labelLines.forEach((line, index) => ctx.fillText(line, x, top + index * labelLineHeight + labelLineHeight / 2, maxTextWidth));
+            ctx.font = subFont;
+            ctx.fillStyle = highlighted ? "#52525b" : "#a1a1aa";
+            subLines.forEach((line, index) => ctx.fillText(line, x, top + labelLines.length * labelLineHeight + gap + index * subLineHeight + subLineHeight / 2, maxTextWidth));
+            ctx.restore();
+        }
 
-            if (sublabel) {
-                ctx.font = "9px 'JetBrains Mono', monospace";
-                ctx.fillStyle = highlighted ? "#27272a" : "#a1a1aa";
-                ctx.fillText(sublabel, x, y + 9);
-            }
+        function drawFlowConnector(x1, y1, x2, y2, active = false) {
+            const lineColor = active ? "#f4f4f5" : "rgba(212,212,216,0.34)";
+            drawDottedLine(x1, y1, x2, y2, active ? [4, 4] : [2, 5], active ? -tick * 0.18 : 0, active ? 0.9 : 0.42);
+            drawArrowHead(x2, y2, Math.atan2(y2 - y1, x2 - x1), lineColor);
+        }
+
+        function drawCanvasCaption(text, x, y, w, align = "center", strong = false) {
+            ctx.save();
+            const font = (strong ? "600 " : "") + "9px 'JetBrains Mono', monospace";
+            ctx.font = font;
+            ctx.fillStyle = strong ? "#d4d4d8" : "#71717a";
+            ctx.textAlign = align;
+            ctx.textBaseline = "middle";
+            const lines = wrapCanvasText(text, Math.max(40, w), font, 2);
+            const lineHeight = 11;
+            const topY = y - ((lines.length - 1) * lineHeight) / 2;
+            lines.forEach((line, index) => ctx.fillText(line, x, topY + index * lineHeight, Math.max(40, w)));
             ctx.restore();
         }
 
@@ -2067,430 +2129,385 @@ const MASTER_QUIZ_QUESTIONS = [
 
         function renderScene() {
             tick += 1;
-            const w = canvas.width / (window.devicePixelRatio || 1);
-            const h = canvas.height / (window.devicePixelRatio || 1);
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.width / dpr;
+            const h = canvas.height / dpr;
             const cx = w / 2;
             const cy = h / 2;
-
             ctx.clearRect(0, 0, w, h);
 
-            // Subtle technical crosshair in center
-            drawDottedLine(cx, 0, cx, h, [2, 8], 0, 0.12);
-            drawDottedLine(0, cy, w, cy, [2, 8], 0, 0.12);
-
-            if (w < 620) {
-                renderCompactSchematic(w, h, cx, cy);
-            } else if (currentModuleIndex === 0) {
-                renderModule0Hook(w, h, cx, cy);
-            } else if (currentModuleIndex === 1) {
-                renderModule1RAG(w, h, cx, cy);
-            } else if (currentModuleIndex === 2) {
-                renderModule2Cost(w, h, cx, cy);
-            } else if (currentModuleIndex === 3) {
-                renderModule3Evals(w, h, cx, cy);
-            } else if (currentModuleIndex === 4) {
-                renderModule4Guardrails(w, h, cx, cy);
-            } else if (currentModuleIndex === 5) {
-                renderModule5Agents(w, h, cx, cy);
-            } else if (currentModuleIndex === 6) {
-                renderModule6FullStack(w, h, cx, cy);
-            }
+            if (currentModuleIndex === 0) renderModule0Hook(w, h, cx, cy);
+            else if (currentModuleIndex === 1) renderModule1RAG(w, h, cx, cy);
+            else if (currentModuleIndex === 2) renderModule2Cost(w, h, cx, cy);
+            else if (currentModuleIndex === 3) renderModule3Evals(w, h, cx, cy);
+            else if (currentModuleIndex === 4) renderModule4Guardrails(w, h, cx, cy);
+            else if (currentModuleIndex === 5) renderModule5Agents(w, h, cx, cy);
+            else if (currentModuleIndex === 6) renderModule6FullStack(w, h, cx, cy);
 
             if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && document.visibilityState === 'visible') {
                 animationFrameId = requestAnimationFrame(renderScene);
-            } else {
-                animationFrameId = null;
             }
         }
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState !== 'visible') return;
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || animationFrameId === null) renderScene();
-        });
 
         // SCENE 0: TOOL ECOSYSTEM -> FIVE ENGINEERING LENSES
         function renderModule0Hook(w, h, cx, cy) {
             const pillars = [
-                { label: "1. CONTEXT", sub: "RAG + Embeddings", angle: -Math.PI / 2 },
-                { label: "2. COST & SPEED", sub: "Cache + Routing", angle: -Math.PI / 2 + (Math.PI * 2) / 5 },
-                { label: "3. EVALUATION", sub: "Test + Regression", angle: -Math.PI / 2 + (Math.PI * 4) / 5 },
-                { label: "4. SECURITY", sub: "Trust + Authorization", angle: -Math.PI / 2 + (Math.PI * 6) / 5 },
-                { label: "5. CONTROLLED ACTION", sub: "Tools + Loop", angle: -Math.PI / 2 + (Math.PI * 8) / 5 }
+                { label: "01  CONTEXT", sub: "Evidence + access" },
+                { label: "02  PERFORMANCE", sub: "Latency + cost" },
+                { label: "03  EVALUATION", sub: "Quality + regression" },
+                { label: "04  SECURITY", sub: "Trust + policy" },
+                { label: "05  ACTION", sub: "Authorized tools" }
             ];
+            drawCanvasCaption("DESIGN QUESTIONS · NOT A UNIVERSAL STACK", cx, 22, w - 28, "center", true);
 
-            const orbitRadius = Math.min(w, h) * 0.34;
-
-            // Animate buzzword particles
-            simState.mod0Particles.forEach((p, idx) => {
-                let targetX, targetY;
-                if (!simState.mod0Collapsed) {
-                    targetX = cx + p.chaosX + Math.sin(tick * 0.02 + idx) * 12;
-                    targetY = cy + p.chaosY + Math.cos(tick * 0.02 + idx) * 10;
-                } else {
-                    const pillar = pillars[p.group];
-                    targetX = cx + Math.cos(pillar.angle) * orbitRadius;
-                    targetY = cy + Math.sin(pillar.angle) * orbitRadius;
-                }
-
-                p.curX += (targetX - p.curX) * 0.08;
-                p.curY += (targetY - p.curY) * 0.08;
-
-                if (!simState.mod0Collapsed) {
-                    // Draw messy connecting web in chaos mode
-                    const nextP = simState.mod0Particles[(idx + 1) % simState.mod0Particles.length];
-                    drawDottedLine(p.curX, p.curY, nextP.curX, nextP.curY, [2, 4], 0, 0.18);
-
-                    ctx.fillStyle = "rgba(255,255,255,0.75)";
+            if (w < 540) {
+                const left = 26;
+                const cardW = Math.max(180, w - 54);
+                const top = 55;
+                const step = Math.min(62, (h - 96) / 5);
+                drawDottedLine(left, top + 6, left, top + step * 4 + 7, [2, 5], 0, 0.5);
+                pillars.forEach((item, i) => {
+                    const y = top + i * step;
+                    ctx.save();
+                    ctx.fillStyle = "#a1a1aa";
                     ctx.beginPath();
-                    ctx.arc(p.curX, p.curY, 2, 0, Math.PI * 2);
+                    ctx.arc(left, y, 3, 0, Math.PI * 2);
                     ctx.fill();
-
-                    ctx.font = "10px 'JetBrains Mono', monospace";
-                    ctx.fillStyle = idx % 3 === 0 ? "#ffffff" : "#71717a";
-                    ctx.textAlign = "center";
-                    ctx.fillText(p.word, p.curX, p.curY - 6);
-                } else {
-                    // Dotted line from center to 5 pillar nodes
-                    drawDottedLine(cx, cy, p.curX, p.curY, [4, 4], -tick * 0.4, 0.35);
-                }
-            });
-
-            if (!simState.mod0Collapsed) {
-                drawTechBox(cx, cy, 160, 44, "TOOL ECOSYSTEM", "COMPARE BY REQUIREMENT", true);
-            } else {
-                // Draw the five-lens design review
-                ctx.save();
-                ctx.fillStyle = "#000000";
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 2;
-                ctx.setLineDash([6, 4]);
-                ctx.lineDashOffset = -tick * 0.3;
-                ctx.beginPath();
-                ctx.arc(cx, cy, 52, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.setLineDash([]);
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 13px 'JetBrains Mono', monospace";
-                ctx.textAlign = "center";
-                ctx.fillText("5 LENSES", cx, cy - 4);
-                ctx.font = "9px 'JetBrains Mono', monospace";
-                ctx.fillStyle = "#a1a1aa";
-                ctx.fillText("DESIGN REVIEW", cx, cy + 10);
-                ctx.restore();
-
-                // Draw the 5 orbital boxes
-                pillars.forEach(pil => {
-                    const px = cx + Math.cos(pil.angle) * orbitRadius;
-                    const py = cy + Math.sin(pil.angle) * orbitRadius;
-                    drawTechBox(px, py, 128, 42, pil.label, pil.sub, false, true);
+                    ctx.restore();
+                    drawTechBox(left + 10 + cardW / 2, y, cardW, 46, item.label, item.sub, false, true);
                 });
+                drawCanvasCaption("CHOOSE THE LENSES YOUR WORKLOAD NEEDS", cx, h - 18, w - 24);
+                return;
             }
+
+            const nodeW = Math.min(166, w * 0.235);
+            const nodeH = 50;
+            const rx = Math.min(w * 0.335, (w - nodeW) / 2 - 18);
+            const ry = Math.min(h * 0.315, (h - nodeH) / 2 - 18);
+            const centerY = cy + 4;
+            const positions = pillars.map((p, i) => {
+                const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+                return { x: cx + Math.cos(a) * rx, y: centerY + Math.sin(a) * ry };
+            });
+            positions.forEach(p => drawFlowConnector(cx, centerY, p.x, p.y, false));
+            positions.forEach((p, i) => drawTechBox(p.x, p.y, nodeW, nodeH, pillars[i].label, pillars[i].sub, false, true));
+
+            ctx.save();
+            ctx.fillStyle = "#080808";
+            ctx.strokeStyle = "rgba(244,244,245,0.88)";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(cx, centerY, 44, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#f4f4f5";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "600 12px 'JetBrains Mono', monospace";
+            ctx.fillText("DESIGN", cx, centerY - 5);
+            ctx.font = "8px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "#a1a1aa";
+            ctx.fillText("REVIEW", cx, centerY + 10);
+            ctx.restore();
+            drawCanvasCaption("REQUIREMENTS → TRADE-OFFS → EVIDENCE", cx, h - 18, w - 24);
         }
 
         // SCENE 1: EMBEDDINGS CLUSTER & RAG GROUNDING
         function renderModule1RAG(w, h, cx, cy) {
-            const clusterCenterX = cx + 65;
-            const clusterCenterY = cy - 15;
+            const stages = [
+                { label: "USER QUERY", sub: "Question + intent" },
+                { label: "EMBED", sub: "Query vector" },
+                { label: "RETRIEVE", sub: "Permission filter" },
+                { label: "RERANK", sub: "Order candidates" },
+                { label: "ANSWER + SOURCES", sub: "Verify evidence" }
+            ];
+            drawCanvasCaption("RAG · RETRIEVAL IS A SEARCH STEP, NOT A TRUTH GUARANTEE", cx, 22, w - 28, "center", true);
 
-            // If RAG active, draw dotted target circle around the relevant cluster
-            if (simState.mod1Clustered) {
-                ctx.save();
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([5, 4]);
-                ctx.lineDashOffset = -tick * 0.4;
-                ctx.beginPath();
-                ctx.arc(clusterCenterX, clusterCenterY, 54, 0, Math.PI * 2);
-                ctx.stroke();
-
-                ctx.font = "10px 'JetBrains Mono', monospace";
-                ctx.fillStyle = "#ffffff";
-                ctx.textAlign = "center";
-                ctx.fillText("RELEVANT VECTOR CLUSTER (COSINE > 0.82)", clusterCenterX, clusterCenterY - 64);
-                ctx.restore();
+            if (w < 560) {
+                const boxW = Math.max(210, w - 44);
+                const top = 46;
+                const step = Math.min(62, (h - 96) / stages.length);
+                stages.forEach((stage, i) => {
+                    const y = top + i * step;
+                    if (i > 0) drawFlowConnector(cx, y - step + 23, cx, y - 23, simState.mod1Clustered && i === 3);
+                    drawTechBox(cx, y, boxW, 44, stage.label, stage.sub, simState.mod1Clustered && (i === 2 || i === 3), true);
+                });
+                drawCanvasCaption("ACL FILTERS · SOURCE IDS · CITATION CHECKS", cx, h - 17, w - 24);
+                return;
             }
 
-            // Update & render vector dots
-            simState.mod1Dots.forEach(d => {
-                const tx = simState.mod1Clustered ? cx + d.clusterX : cx + d.scatterX;
-                const ty = simState.mod1Clustered ? cy + d.clusterY : cy + d.scatterY;
-                d.curX += (tx - d.curX) * 0.08;
-                d.curY += (ty - d.curY) * 0.08;
-
-                if (simState.mod1Clustered && d.relevant) {
-                    drawDottedLine(d.curX, d.curY, clusterCenterX, clusterCenterY, [2, 3], 0, 0.35);
-                }
-
-                ctx.save();
-                ctx.beginPath();
-                const radius = (simState.mod1Clustered && d.relevant) ? 4.5 : 2.5;
-                ctx.arc(d.curX, d.curY, radius, 0, Math.PI * 2);
-                ctx.fillStyle = (simState.mod1Clustered && d.relevant) ? "#ffffff" : "rgba(255,255,255,0.3)";
-                ctx.fill();
-                ctx.restore();
+            const margin = 22;
+            const nodeW = Math.min(140, (w - margin * 2 - 4 * 10) / stages.length);
+            const gap = (w - margin * 2 - nodeW * stages.length) / (stages.length - 1);
+            const y = Math.min(cy - 18, 145);
+            const centers = stages.map((stage, i) => margin + nodeW / 2 + i * (nodeW + gap));
+            stages.forEach((stage, i) => {
+                if (i > 0) drawFlowConnector(centers[i - 1] + nodeW / 2 + 2, y, centers[i] - nodeW / 2 - 7, y, simState.mod1Clustered && (i === 2 || i === 3));
+                drawTechBox(centers[i], y, nodeW, 62, stage.label, stage.sub, simState.mod1Clustered && (i === 2 || i === 3), true);
             });
 
-            // Bottom flow bar: [QUERY EMBEDDING] -> [STITCH DOCS] -> [GROUNDED ANSWER]
-            const bottomY = h - 38;
-            drawTechBox(w * 0.2, bottomY, 130, 34, "EMBED QUERY", "Search by meaning", false);
-            drawTechBox(w * 0.5, bottomY, 140, 34, "RAG STITCHING", "Add Top-K to prompt", simState.mod1Clustered);
-            drawTechBox(w * 0.8, bottomY, 145, 34, simState.mod1Clustered ? "ANSWER + SOURCES" : "UNSUPPORTED GUESS", simState.mod1Clustered ? "Check source support" : "Grounding risk", simState.mod1Clustered);
-
-            drawDottedLine(w * 0.2 + 65, bottomY, w * 0.5 - 70, bottomY, [4, 4], -tick * 0.6, 0.8);
-            drawDottedLine(w * 0.5 + 70, bottomY, w * 0.8 - 72, bottomY, [4, 4], -tick * 0.6, 0.8);
-
-            if (simState.mod1Clustered) {
-                drawDottedLine(clusterCenterX, clusterCenterY + 54, w * 0.5, bottomY - 17, [4, 4], -tick * 0.6, 0.9);
-            }
+            drawCanvasCaption("EVIDENCE CANDIDATES", cx, cy + 72, w - 28, "center", true);
+            const docLabels = ["DOC · 014", "DOC · 027", "DOC · 031", "DOC · 108", "DOC · 204", "DOC · 219"];
+            const chipW = Math.min(90, (w - 52 - 5 * 8) / 6);
+            const chipGap = (w - chipW * 6) / 7;
+            docLabels.forEach((label, i) => {
+                const x = chipGap + chipW / 2 + i * (chipW + chipGap);
+                drawTechBox(x, cy + 122, chipW, 34, label, simState.mod1Clustered && i < 3 ? "SELECTED" : "CANDIDATE", simState.mod1Clustered && i < 3, true);
+            });
+            drawCanvasCaption("RETRIEVAL RECALL ≠ ANSWER FAITHFULNESS", cx, h - 18, w - 24);
         }
 
         // SCENE 2: PROMPT CACHING + MODEL ROUTING
         function renderModule2Cost(w, h, cx, cy) {
-            const prefixX = w * 0.18;
-            const routerX = w * 0.47;
-            const modelsX = w * 0.80;
-
+            drawCanvasCaption("ROUTE BY MEASURED TASK NEED · RELATIVE TIERS ONLY", cx, 22, w - 28, "center", true);
             const tiers = [
-                { id: "SMALL", y: cy - 85, label: "SMALL MODEL", sub: "Relative lower cost" },
-                { id: "MEDIUM", y: cy, label: "MEDIUM MODEL", sub: "Relative mid-tier" },
-                { id: "BIG", y: cy + 85, label: "BIG MODEL", sub: "Relative higher cost" }
+                { id: "SMALL", label: "LOWER COST", sub: "Simple, bounded tasks" },
+                { id: "MEDIUM", label: "BALANCED", sub: "Mixed complexity" },
+                { id: "BIG", label: "HIGHER CAPABILITY", sub: "Harder reasoning" }
             ];
+            if (w < 560) {
+                const boxW = Math.max(210, w - 48);
+                const prefixY = 48;
+                const routerY = 121;
+                const tierTop = 207;
+                const tierStep = Math.min(58, (h - tierTop - 42) / 3);
+                drawTechBox(cx, prefixY, boxW, 46, simState.mod2CacheEnabled ? "REUSABLE PREFIX" : "REQUEST PREFIX", simState.mod2CacheEnabled ? "Cache candidate · verify hit" : "Request-specific tokens", simState.mod2CacheEnabled, true);
+                drawFlowConnector(cx, prefixY + 24, cx, routerY - 24, simState.mod2CacheEnabled);
+                drawTechBox(cx, routerY, boxW, 46, "MODEL ROUTER", "Choose from task + evals", false, true);
+                const spineX = cx - boxW / 2 - 12;
+                drawDottedLine(spineX, routerY + 26, spineX, tierTop + tierStep * 2, [2, 5], 0, 0.38);
+                tiers.forEach((tier, i) => {
+                    const y = tierTop + i * tierStep;
+                    drawFlowConnector(spineX, y, cx - boxW / 2 - 7, y, simState.mod2TaskSize === tier.id);
+                    drawTechBox(cx, y, boxW, 44, tier.label, tier.sub, simState.mod2TaskSize === tier.id, true);
+                });
+                drawCanvasCaption("CACHE HITS AND ROUTING GAINS MUST BE MEASURED", cx, h - 16, w - 20);
+                return;
+            }
 
-            // Connections from Prefix -> Router
-            drawDottedLine(prefixX + 70, cy, routerX - 60, cy, [5, 4], -tick * 0.7, 0.9);
-
-            // Connections from Router -> [SMALL, MEDIUM, BIG]
-            tiers.forEach(t => {
-                const isSelected = simState.mod2TaskSize === t.id;
-                drawDottedLine(
-                    routerX + 60,
-                    cy,
-                    modelsX - 75,
-                    t.y,
-                    isSelected ? [6, 4] : [2, 5],
-                    isSelected ? -tick * 0.9 : 0,
-                    isSelected ? 1.0 : 0.25
-                );
-                drawTechBox(modelsX, t.y, 150, 46, t.label, t.sub, isSelected, true);
+            const prefixX = w * 0.15;
+            const routerX = w * 0.43;
+            const modelsX = w * 0.79;
+            const modelY = [cy - 80, cy, cy + 80];
+            drawFlowConnector(prefixX + 66, cy, routerX - 62, cy, simState.mod2CacheEnabled);
+            drawTechBox(prefixX, cy, 132, 58, simState.mod2CacheEnabled ? "REUSABLE PREFIX" : "REQUEST PREFIX", simState.mod2CacheEnabled ? "Cache candidate" : "Per-request input", simState.mod2CacheEnabled, true);
+            drawTechBox(routerX, cy, 124, 54, "MODEL ROUTER", "Task + eval signal", false, true);
+            tiers.forEach((tier, i) => {
+                drawFlowConnector(routerX + 63, cy, modelsX - 78, modelY[i], simState.mod2TaskSize === tier.id);
+                drawTechBox(modelsX, modelY[i], 156, 52, tier.label, tier.sub, simState.mod2TaskSize === tier.id, true);
             });
-
-            // Prefix Box
-            drawTechBox(
-                prefixX,
-                cy,
-                140,
-                64,
-                simState.mod2CacheEnabled ? "CACHED PREFIX" : "RAW PREFIX",
-                simState.mod2CacheEnabled ? "CACHE CANDIDATE" : "PREFIX REPROCESSED",
-                simState.mod2CacheEnabled
-            );
-
-            // Router Box
-            drawTechBox(routerX, cy, 120, 52, "ROUTER", `Task -> ${simState.mod2TaskSize}`, false);
-
-            // Bottom label matching the reel
-            ctx.save();
-            ctx.font = "bold 11px 'JetBrains Mono', monospace";
-            ctx.fillStyle = "#a1a1aa";
-            ctx.textAlign = "center";
-            ctx.fillText("ILLUSTRATIVE FLOW: PREFIX -> ROUTER -> MODEL TIER", cx, h - 20);
-            ctx.restore();
+            drawCanvasCaption("COMPARE QUALITY · P50/P95 LATENCY · COST PER SUCCESSFUL TASK", cx, h - 18, w - 28);
         }
 
         // SCENE 3: EVALS GRID & LLM-AS-JUDGE
         function renderModule3Evals(w, h, cx, cy) {
-            const cols = 5;
-            const rows = 5;
-            const cellSize = 44;
-            const gap = 8;
-            const gridW = cols * cellSize + (cols - 1) * gap;
-            const gridH = rows * cellSize + (rows - 1) * gap;
-            const startX = cx - gridW / 2 - 70;
-            const startY = cy - gridH / 2 - 10;
+            const passCount = simState.mod3Grid.filter(c => c.passed).length;
+            const pct = Math.round((passCount / Math.max(1, simState.mod3Grid.length)) * 100);
+            drawCanvasCaption("EVALUATION IS A TEST SET + RUBRIC + FAILURE REVIEW", cx, 22, w - 28, "center", true);
 
-            // Draw 5x5 Eval Test Grid
+            if (w < 560) {
+                drawTechBox(cx, 66, Math.min(222, w - 44), 48, "DEMO RESULT · " + pct + "%", passCount + " / " + simState.mod3Grid.length + " sample cases", false, true);
+                const cellSize = Math.min(25, (w - 72) / 5 - 4);
+                const gap = 5;
+                const gridW = cellSize * 5 + gap * 4;
+                const startX = cx - gridW / 2;
+                const startY = 112;
+                simState.mod3Grid.forEach((cell, idx) => {
+                    const col = idx % 5;
+                    const row = Math.floor(idx / 5);
+                    const x = startX + col * (cellSize + gap);
+                    const y = startY + row * (cellSize + gap);
+                    ctx.save();
+                    ctx.fillStyle = cell.passed ? "rgba(244,244,245,0.12)" : "rgba(9,9,11,0.94)";
+                    ctx.strokeStyle = cell.passed ? "rgba(244,244,245,0.75)" : "rgba(161,161,170,0.34)";
+                    ctx.lineWidth = 1;
+                    if (!cell.passed) ctx.setLineDash([2, 3]);
+                    ctx.fillRect(x, y, cellSize, cellSize);
+                    ctx.strokeRect(x, y, cellSize, cellSize);
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = cell.passed ? "#f4f4f5" : "#71717a";
+                    ctx.font = "8px 'JetBrains Mono', monospace";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(cell.passed ? "✓" : "–", x + cellSize / 2, y + cellSize / 2);
+                    ctx.restore();
+                });
+                drawCanvasCaption("SAMPLE FIXTURES · NOT A LIVE BENCHMARK", cx, startY + gridW + 19, w - 24);
+                drawCanvasCaption("CHECK EACH FAILURE CATEGORY BEFORE RELEASE", cx, h - 17, w - 24, "center", true);
+                return;
+            }
+
+            const cellSize = Math.min(30, Math.max(24, Math.min(w * 0.042, h * 0.08)));
+            const gap = 5;
+            const gridW = cellSize * 5 + gap * 4;
+            const startX = Math.max(24, w * 0.10);
+            const startY = cy - gridW / 2 + 4;
             simState.mod3Grid.forEach((cell, idx) => {
-                const c = idx % cols;
-                const r = Math.floor(idx / cols);
-                const x = startX + c * (cellSize + gap);
-                const y = startY + r * (cellSize + gap);
-
+                const col = idx % 5;
+                const row = Math.floor(idx / 5);
+                const x = startX + col * (cellSize + gap);
+                const y = startY + row * (cellSize + gap);
                 ctx.save();
-                ctx.fillStyle = cell.passed ? "rgba(255,255,255,0.1)" : "#050505";
-                ctx.strokeStyle = cell.passed ? "#ffffff" : "rgba(255,255,255,0.35)";
-                ctx.lineWidth = cell.passed ? 1.5 : 1;
-                if (!cell.passed) ctx.setLineDash([3, 3]);
+                ctx.fillStyle = cell.passed ? "rgba(244,244,245,0.12)" : "rgba(9,9,11,0.94)";
+                ctx.strokeStyle = cell.passed ? "rgba(244,244,245,0.75)" : "rgba(161,161,170,0.34)";
+                ctx.lineWidth = 1;
+                if (!cell.passed) ctx.setLineDash([2, 3]);
                 ctx.fillRect(x, y, cellSize, cellSize);
                 ctx.strokeRect(x, y, cellSize, cellSize);
-
                 ctx.setLineDash([]);
-                ctx.font = "bold 14px 'JetBrains Mono', monospace";
-                ctx.fillStyle = cell.passed ? "#ffffff" : "#71717a";
+                ctx.fillStyle = cell.passed ? "#f4f4f5" : "#71717a";
+                ctx.font = "bold 11px 'JetBrains Mono', monospace";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.fillText(cell.passed ? "✓" : "✗", x + cellSize / 2, y + cellSize / 2);
+                ctx.fillText(cell.passed ? "✓" : "–", x + cellSize / 2, y + cellSize / 2);
                 ctx.restore();
             });
-
-            // Right side: LLM-AS-JUDGE + Score Readout
-            const rightX = cx + 135;
-            const passCount = simState.mod3Grid.filter(c => c.passed).length;
-            const pct = Math.round((passCount / 25) * 100);
-
-            drawDottedLine(startX + gridW + 10, cy - 35, rightX - 75, cy - 35, [4, 4], -tick * 0.5, 0.8);
-            drawTechBox(rightX, cy - 35, 150, 52, "RUBRIC JUDGE", "Sample evaluation", true);
-            drawTechBox(rightX, cy + 45, 150, 56, `DEMO: ${pct}%`, "Illustrative fixtures", false);
-
-            ctx.save();
-            ctx.font = "bold 11px 'JetBrains Mono', monospace";
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = "center";
-            ctx.fillText("DEMO GRID: ILLUSTRATIVE EVALUATION CASES", cx, h - 18);
-            ctx.restore();
+            drawCanvasCaption("SAMPLE CASE GRID", startX + gridW / 2, startY + gridW + 20, gridW + 60, "center", false);
+            const panelX = Math.min(w * 0.72, startX + gridW + 180);
+            drawFlowConnector(startX + gridW + 22, cy, panelX - 82, cy, false);
+            drawTechBox(panelX, cy - 56, 160, 54, "RUBRIC REVIEW", "Grounding + completeness", false, true);
+            drawTechBox(panelX, cy + 14, 160, 54, pct + "% SAMPLE PASS", passCount + " / " + simState.mod3Grid.length + " fixtures", false, true);
+            drawTechBox(panelX, cy + 84, 160, 48, "RELEASE REVIEW", "Inspect failures by slice", false, true);
+            drawCanvasCaption("ILLUSTRATIVE FIXTURE RESULTS · NOT LIVE EVALS", cx, h - 17, w - 28, "center", true);
         }
 
         // SCENE 4: GUARDRAILS (USER -> IN CHECK -> LLM -> OUT CHECK)
         function renderModule4Guardrails(w, h, cx, cy) {
             const nodes = [
-                { x: w * 0.14, label: "USER", sub: "Raw Input" },
-                { x: w * 0.38, label: "IN CHECK", sub: "Risk screening" },
-                { x: w * 0.62, label: "LLM", sub: "Core Model" },
-                { x: w * 0.86, label: "OUT CHECK", sub: "Output validation" }
+                { label: "REQUEST", sub: "Untrusted input" },
+                { label: "AUTH + POLICY", sub: "Identity + permissions" },
+                { label: "MODEL", sub: "Generate / propose" },
+                { label: "VALIDATE", sub: "Schema + business rules" },
+                { label: "RESPONSE", sub: "Deliver or safe fallback" }
             ];
+            const blockedIndex = simState.mod4AttackType === "injection" ? 1 :
+                (simState.mod4AttackType === "hallucination" ? 3 : -1);
+            drawCanvasCaption("TRUST BOUNDARIES LIVE IN APPLICATION CODE", cx, 22, w - 28, "center", true);
 
-            // Advance animated packet
-            simState.mod4PacketX = (simState.mod4PacketX + 2.2) % w;
-            let maxAllowedX = w * 0.92;
-            if (simState.mod4AttackType === 'injection') maxAllowedX = nodes[1].x;
-            if (simState.mod4AttackType === 'hallucination') maxAllowedX = nodes[3].x;
-
-            if (simState.mod4PacketX > maxAllowedX) {
-                simState.mod4PacketX = nodes[0].x;
+            if (w < 560) {
+                const boxW = Math.max(208, w - 46);
+                const top = 48;
+                const step = Math.min(62, (h - 96) / nodes.length);
+                nodes.forEach((node, i) => {
+                    const y = top + i * step;
+                    if (i > 0) drawFlowConnector(cx, y - step + 23, cx, y - 23, i === blockedIndex);
+                    const hit = i === blockedIndex;
+                    drawTechBox(cx, y, boxW, 44, node.label, hit ? "DEMO POLICY FLAG" : node.sub, hit, true);
+                });
+                drawCanvasCaption("FILTERS HELP · AUTHORIZATION DECIDES", cx, h - 16, w - 24, "center", true);
+                return;
             }
 
-            // Connect boxes
-            for (let i = 0; i < nodes.length - 1; i++) {
-                const blockedAfterThis =
-                    (simState.mod4AttackType === 'injection' && i >= 1) ||
-                    (simState.mod4AttackType === 'hallucination' && i >= 3);
-                drawDottedLine(
-                    nodes[i].x + 55,
-                    cy,
-                    nodes[i + 1].x - 55,
-                    cy,
-                    [5, 4],
-                    blockedAfterThis ? 0 : -tick * 0.7,
-                    blockedAfterThis ? 0.2 : 0.9
-                );
-            }
-
-            // Draw nodes
-            nodes.forEach((n, idx) => {
-                const isBlockingHere =
-                    (simState.mod4AttackType === 'injection' && idx === 1) ||
-                    (simState.mod4AttackType === 'hallucination' && idx === 3);
-                drawTechBox(n.x, cy, 110, 56, n.label, isBlockingHere ? "BLOCKED [✗]" : n.sub, isBlockingHere);
-
-                if (isBlockingHere) {
-                    // Draw vertical shield barrier
-                    drawDottedLine(n.x, cy - 65, n.x, cy + 65, [3, 3], 0, 1.0);
-                    ctx.save();
-                    ctx.font = "bold 10px 'JetBrains Mono', monospace";
-                    ctx.fillStyle = "#ffffff";
-                    ctx.textAlign = "center";
-                    ctx.fillText("DEMO FLAGGED", n.x, cy - 75);
-                    ctx.restore();
+            const nodeW = Math.min(124, (w - 76) / nodes.length);
+            const gap = (w - nodeW * nodes.length) / (nodes.length + 1);
+            const y = cy - 8;
+            nodes.forEach((node, i) => {
+                const x = gap + nodeW / 2 + i * (nodeW + gap);
+                if (i > 0) {
+                    const prevX = gap + nodeW / 2 + (i - 1) * (nodeW + gap);
+                    drawFlowConnector(prevX + nodeW / 2 + 2, y, x - nodeW / 2 - 7, y, i === blockedIndex);
+                }
+                drawTechBox(x, y, nodeW, 60, node.label, i === blockedIndex ? "DEMO POLICY FLAG" : node.sub, i === blockedIndex, true);
+                if (i === blockedIndex) {
+                    drawDottedLine(x, y - 42, x, y - 32, [2, 3], 0, 0.85);
+                    drawCanvasCaption("FLAGGED IN DEMO", x, y - 52, nodeW + 12, "center", true);
                 }
             });
-
-            // Draw moving packet dot
-            ctx.save();
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.arc(simState.mod4PacketX, cy, 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
+            drawCanvasCaption("INPUT SCREENING ≠ AUTHORIZATION · OUTPUT FILTERS ARE NOT GUARANTEES", cx, h - 18, w - 28);
         }
 
         // SCENE 5: TOOLS + AGENTS TRIANGLE LOOP
         function renderModule5Agents(w, h, cx, cy) {
-            if (simState.mod5AutoLoop && tick % 75 === 0) {
-                simState.mod5Step = (simState.mod5Step + 1) % 4;
-                updateSimTelemetry();
+            const nodes = [
+                { label: "MODEL PROPOSES", sub: "Structured tool call" },
+                { label: "VALIDATE + AUTHORIZE", sub: "Current user + resource" },
+                { label: "TOOL RUNTIME", sub: "Least privilege + limits" },
+                { label: "RESULT / STOP", sub: "Bounded output + check" }
+            ];
+            const active = simState.mod5Step % nodes.length;
+            drawCanvasCaption("A TOOL CALL IS A REQUEST · THE BACKEND OWNS EXECUTION", cx, 22, w - 28, "center", true);
+
+            if (w < 560) {
+                const boxW = Math.max(210, w - 44);
+                const top = 48;
+                const step = Math.min(70, (h - 102) / nodes.length);
+                nodes.forEach((node, i) => {
+                    const y = top + i * step;
+                    if (i > 0) drawFlowConnector(cx, y - step + 23, cx, y - 23, active === i);
+                    drawTechBox(cx, y, boxW, 46, node.label, node.sub, active === i, true);
+                });
+                drawCanvasCaption("BOUNDED STEPS · DEADLINE · SPEND · IDEMPOTENCY", cx, h - 17, w - 24);
+                return;
             }
 
-            const topNode = { x: cx, y: cy - 95, label: "1. THINK (LLM)", sub: "Plan & emit tool_call" };
-            const rightNode = { x: cx + 150, y: cy + 75, label: "2. TOOL CALL", sub: "Execute function()" };
-            const leftNode = { x: cx - 150, y: cy + 75, label: "3. DATABASE / API", sub: "Mutate & observe" };
-
-            // Triangle edges
-            const activeEdge = simState.mod5Step;
-            drawDottedLine(topNode.x + 40, topNode.y + 26, rightNode.x - 30, rightNode.y - 26, [6, 4], -tick * 0.8, activeEdge === 0 ? 1.0 : 0.35);
-            drawDottedLine(rightNode.x - 75, rightNode.y, leftNode.x + 75, leftNode.y, [6, 4], -tick * 0.8, activeEdge === 1 ? 1.0 : 0.35);
-            drawDottedLine(leftNode.x + 30, leftNode.y - 26, topNode.x - 40, topNode.y + 26, [6, 4], -tick * 0.8, activeEdge >= 2 ? 1.0 : 0.35);
-
-            drawTechBox(topNode.x, topNode.y, 155, 52, topNode.label, topNode.sub, activeEdge === 0 || activeEdge === 3);
-            drawTechBox(rightNode.x, rightNode.y, 155, 52, rightNode.label, rightNode.sub, activeEdge === 1);
-            drawTechBox(leftNode.x, leftNode.y, 155, 52, leftNode.label, leftNode.sub, activeEdge === 2);
-
-            // Center label inside the triangle
-            ctx.save();
-            ctx.font = "bold 11px 'JetBrains Mono', monospace";
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = "center";
-            ctx.fillText("AGENT LOOP", cx, cy + 5);
-            ctx.font = "10px 'JetBrains Mono', monospace";
-            ctx.fillStyle = "#a1a1aa";
-            ctx.fillText("Think -> Act -> Check -> Repeat", cx, cy + 22);
-            ctx.restore();
+            const nodeW = Math.min(148, (w - 90) / 4);
+            const gap = (w - nodeW * nodes.length) / (nodes.length + 1);
+            const y = cy + 10;
+            const xs = nodes.map((node, i) => gap + nodeW / 2 + i * (nodeW + gap));
+            nodes.forEach((node, i) => {
+                if (i > 0) drawFlowConnector(xs[i - 1] + nodeW / 2 + 3, y, xs[i] - nodeW / 2 - 8, y, active === i);
+                drawTechBox(xs[i], y, nodeW, 60, node.label, node.sub, active === i, true);
+            });
+            const loopY = cy - 82;
+            drawDottedLine(xs[3], y - 31, xs[3], loopY, [2, 4], 0, 0.45);
+            drawDottedLine(xs[3], loopY, xs[0], loopY, [2, 4], 0, 0.45);
+            drawFlowConnector(xs[0], loopY, xs[0], y - 32, active === 0);
+            drawCanvasCaption("REPEAT ONLY WHILE THE TASK AND BUDGET ALLOW", cx, h - 18, w - 28);
         }
 
         // SCENE 6: PUTTING IT ALL TOGETHER (= AN AI APP)
         function renderModule6FullStack(w, h, cx, cy) {
-            const mainY = cy;
-            const xs = {
-                USER: w * 0.08,
-                IN_CHECK: w * 0.23,
-                ROUTER: w * 0.41,
-                LLM: w * 0.60,
-                OUT_CHECK: w * 0.79,
-                ANSWER: w * 0.93
-            };
+            const compact = w < 560;
+            drawCanvasCaption("REFERENCE FLOW · OPTIONAL COMPONENTS ARE WORKLOAD-DEPENDENT", cx, 22, w - 28, "center", true);
 
-            const ragNode = { x: xs.LLM, y: cy - 110 };
-            const toolsNode = { x: xs.LLM, y: cy + 110 };
-            const evalsNode = { x: xs.ROUTER, y: cy + 110 };
+            if (compact) {
+                const nodes = [
+                    { label: "REQUEST + IDENTITY", sub: "Authenticate + authorize" },
+                    { label: "OPTIONAL RETRIEVAL", sub: "Permission-filtered evidence" },
+                    { label: "MODEL + OPTIONAL TOOLS", sub: "Bounded orchestration" },
+                    { label: "VALIDATE + RESPOND", sub: "Schema + policy checks" },
+                    { label: "OBSERVE + EVALUATE", sub: "Traces + regression tests" }
+                ];
+                const boxW = Math.max(220, w - 44);
+                const top = 49;
+                const step = Math.min(64, (h - 101) / nodes.length);
+                nodes.forEach((node, i) => {
+                    const y = top + i * step;
+                    if (i > 0) drawFlowConnector(cx, y - step + 21, cx, y - 21, i === 4);
+                    drawTechBox(cx, y, boxW, 42, node.label, node.sub, false, true);
+                });
+                drawCanvasCaption("SECURITY · RELIABILITY · COST · PRIVACY", cx, h - 16, w - 24, "center", true);
+                return;
+            }
 
-            // Horizontal main spine dotted lines
-            drawDottedLine(xs.USER + 32, mainY, xs.IN_CHECK - 48, mainY, [4, 4], -tick * 0.7, 0.85);
-            drawDottedLine(xs.IN_CHECK + 48, mainY, xs.ROUTER - 55, mainY, [4, 4], -tick * 0.7, 0.85);
-            drawDottedLine(xs.ROUTER + 55, mainY, xs.LLM - 48, mainY, [4, 4], -tick * 0.7, 0.85);
-            drawDottedLine(xs.LLM + 48, mainY, xs.OUT_CHECK - 48, mainY, [4, 4], -tick * 0.7, 0.85);
-            drawDottedLine(xs.OUT_CHECK + 48, mainY, xs.ANSWER - 34, mainY, [4, 4], -tick * 0.7, 0.85);
-
-            // Vertical RAG -> LLM
-            drawDottedLine(ragNode.x, ragNode.y + 24, xs.LLM, mainY - 24, [4, 4], -tick * 0.7, 0.9);
-            // Vertical TOOLS <-> LLM
-            drawDottedLine(xs.LLM, mainY + 24, toolsNode.x, toolsNode.y - 24, [4, 4], -tick * 0.7, 0.9);
-            // Side EVALS dotted connection
-            drawDottedLine(evalsNode.x, evalsNode.y - 24, xs.LLM - 25, mainY + 24, [3, 4], 0, 0.5);
-
-            const sel = simState.mod6SelectedNode;
-            drawTechBox(xs.USER, mainY, 64, 38, "USER", "", false);
-            drawTechBox(xs.IN_CHECK, mainY, 96, 44, "IN CHECK", "4. Guardrail", sel === 'IN_CHECK');
-            drawTechBox(xs.ROUTER, mainY, 112, 44, "ROUTER+CACHE", "2. Latency + Cost", sel === 'ROUTER');
-            drawTechBox(xs.LLM, mainY, 96, 48, "LLM", "Core Engine", sel === 'LLM');
-            drawTechBox(xs.OUT_CHECK, mainY, 96, 44, "OUT CHECK", "4. Guardrail", sel === 'OUT_CHECK');
-            drawTechBox(xs.ANSWER, mainY, 68, 38, "RESPONSE", "Output", true);
-
-            // Top RAG Box
-            drawTechBox(ragNode.x, ragNode.y, 130, 44, "1. RAG CONTEXT", "Embeddings + Docs", sel === 'RAG');
-            // Bottom Tools Box
-            drawTechBox(toolsNode.x, toolsNode.y, 130, 44, "+ 5. TOOLS", "Agent Action Loop", sel === 'TOOLS');
-            // Side Evals Box
-            drawTechBox(evalsNode.x, evalsNode.y, 130, 44, "3. EVALS", "Demo rubric result", sel === 'EVALS');
+            const nodes = [
+                { label: "REQUEST", sub: "Identity + input" },
+                { label: "RETRIEVE", sub: "Optional + ACLs" },
+                { label: "MODEL", sub: "Generate / decide" },
+                { label: "TOOL RUNTIME", sub: "Optional + authorized" },
+                { label: "VALIDATE", sub: "Schema + policy" },
+                { label: "RESPONSE", sub: "Deliver / abstain" }
+            ];
+            const margin = 24;
+            const nodeW = Math.min(112, (w - margin * 2 - 5 * 8) / nodes.length);
+            const gap = (w - margin * 2 - nodeW * nodes.length) / (nodes.length - 1);
+            const y = cy - 25;
+            const xs = nodes.map((node, i) => margin + nodeW / 2 + i * (nodeW + gap));
+            nodes.forEach((node, i) => {
+                if (i > 0) drawFlowConnector(xs[i - 1] + nodeW / 2 + 2, y, xs[i] - nodeW / 2 - 7, y, false);
+                drawTechBox(xs[i], y, nodeW, 60, node.label, node.sub, false, true);
+                drawDottedLine(xs[i], y + 31, xs[i], y + 69, [2, 4], 0, 0.32);
+            });
+            drawDottedLine(margin, y + 69, w - margin, y + 69, [2, 4], 0, 0.38);
+            drawCanvasCaption("TRACING + METRICS + EVALUATION + ALERTS", cx, y + 88, w - 40, "center", true);
+            const crossCutting = [
+                { x: w * 0.20, label: "RELIABILITY", sub: "Timeouts + fallback" },
+                { x: w * 0.50, label: "SECURITY", sub: "Least privilege + privacy" },
+                { x: w * 0.80, label: "ECONOMICS", sub: "Cost per successful task" }
+            ];
+            crossCutting.forEach(item => drawTechBox(item.x, Math.min(h - 34, y + 132), Math.min(176, w * 0.25), 48, item.label, item.sub, false, true));
         }
 
         function openMasterQuizModal() {
