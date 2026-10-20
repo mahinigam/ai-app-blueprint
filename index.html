@@ -498,15 +498,15 @@ def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
                 interviews: [
                     {
                         q: "SCENARIO: A junior engineer proposes using LangChain, LlamaIndex, Pinecone, and CrewAI all together for a simple customer support bot. How do you respond?",
-                        symptom: "Over-engineered stack, 6-second cold latency, impossible to debug stack traces when prompts fail.",
+                        symptom: "A growing dependency graph can add operating cost, failure modes, and debugging overhead. Measure its latency and reliability impact against a baseline.",
                         rootCause: "Confusing tool collection with problem-solving.",
-                        fix: "Ask which of the 5 core problems each dependency solves. Replace heavy multi-agent wrappers with a single native SDK call, a Postgres pgvector table for RAG, a 20-line router, and a Golden Eval suite. Only add complexity when evals prove a simpler design fails."
+                        fix: "Start from the required behavior and non-functional constraints. Keep a dependency only when it adds measurable value in quality, maintainability, observability, reliability, or delivery speed. A direct SDK may be enough for a simple workflow; orchestration or managed retrieval can be justified when it materially reduces risk or effort."
                     },
                     {
                         q: "SCENARIO: In what order should you build the 5 pillars when starting a brand new AI product from scratch?",
-                        symptom: "Teams spend weeks building complex model routers (#2) before knowing if their RAG pipeline (#1) even answers accurately.",
+                        symptom: "Teams can over-invest in optimization before establishing whether the feature solves the user problem and meets its quality bar.",
                         rootCause: "Premature cost optimization before establishing quality baselines.",
-                        fix: "1st: Build Evals (#3) + basic RAG/Context (#1) with the smartest frontier model to prove the product works. 2nd: Add Guardrails (#4) & Tools (#5). 3rd: Cut the Cost (#2) with routing and caching while using your Evals (#3) to ensure quality doesn't drop."
+                        fix: "Define representative success criteria early. Build the smallest end-to-end path with identity, authorization, and basic observability in place. Add retrieval and tool execution only when needed. Test failure behavior, then optimize cost and latency while rerunning the same evaluation suite."
                     }
                 ]
             },
@@ -1204,7 +1204,7 @@ const MASTER_QUIZ_QUESTIONS = [
                     "Move user-specific data into shared prompts across tenants"
                 ],
                 correct: 1,
-                explanation: "Caching behavior varies by provider, model, and request shape. Check actual hit-rate and billing data; never mix user-specific or tenant-specific content merely to improve reuse."
+                explanation: "Provider cache behavior depends on model, request shape, prefix rules, and billing semantics. A changing early prefix can reduce reuse, but do not assume every provider invalidates the same content. Inspect cache telemetry and never mix tenant-specific information to chase cache hits."
             },
             {
                 question: "3. What makes an LLM-as-a-judge evaluation more trustworthy?",
