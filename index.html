@@ -355,8 +355,8 @@
                             <span class="font-bold text-white mt-1">CONTROLLED ACTION</span>
                         </button>
                         <button onclick="selectModule(6)" id="pill-6" class="p-2 border border-white bg-white/10 hover:bg-white hover:text-black text-left transition flex flex-col justify-between">
-                            <span class="opacity-70">= OUTPUT</span>
-                            <span class="font-bold mt-1">AN AI APP</span>
+                            <span class="opacity-70">06 // CAPSTONE</span>
+                            <span class="font-bold mt-1">INTEGRATED DESIGN</span>
                         </button>
                     </div>
                 </div>
@@ -429,7 +429,7 @@
                     mentalModel: "Use five questions to structure a design review:\n1. Context: what evidence is needed, and which sources may this user access?\n2. Performance: what latency, throughput, and cost budgets must be met?\n3. Evaluation: what test set and metrics indicate acceptable quality?\n4. Security: which data and actions are trusted, authorized, and auditable?\n5. Action: what capabilities can the model request, and what must deterministic application code decide?\nThese lenses complement—not replace—requirements analysis, reliability, privacy, observability, deployment, and governance.",
                     useCases: [
                         "Architectural System Design interviews where you must justify WHY a component exists rather than dropping vendor names.",
-                        "Migrating away from bloated wrapper frameworks to lean, debuggable native SDK code.",
+                        "Choosing between a provider SDK, orchestration framework, and managed service based on measured requirements.",
                         "Auditing an existing AI startup stack to find what's missing before launch."
                     ],
                     bestPractices: [
@@ -491,7 +491,7 @@ def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
         top_k=5,
     )
 
-    # 2. CUT THE COST: Route by complexity & reuse cached system prefix
+    # 2. PERFORMANCE: route by task need; cache where supported and measured
     model_tier = route_query_complexity(req.query) # 'small' | 'medium' | 'big'
     response = call_llm_with_prefix_cache(
         model=model_tier,
@@ -683,16 +683,18 @@ QUESTION: {query}"""
 A stable prefix may be cached by the provider when its caching rules are satisfied; this example does not guarantee a cache hit.]"""
 
 def classify_complexity(query: str) -> str:
+    # Toy heuristic only; replace or calibrate against representative requests.
     # Fast heuristic + lightweight classifier
     hard_signals = ["compare", "architect", "debug", "calculate", "why did", "multi-step"]
     score = sum(1 for w in hard_signals if w in query.lower())
     if len(query.split()) < 12 and score == 0:
-        return "SMALL"   # e.g., gemini-3.1-flash-lite / gpt-4o-mini
+        return "SMALL"   # relative tier; benchmark task quality and total cost
     elif score <= 1:
-        return "MEDIUM"  # e.g., a provider-specific low-latency model
-    return "BIG"         # e.g., a provider-specific high-capability model
+        return "MEDIUM"  # illustrative tier; calibrate routing against a representative set
+    return "BIG"         # illustrative tier; verify quality, latency, and spend by route
 
 MODEL_MAP = {
+    # Relative weights only, not current provider prices.
     "SMALL":  {"name": "small-fast-model",  "relative_cost_weight": 1},
     "MEDIUM": {"name": "medium-core-model", "relative_cost_weight": 3},
     "BIG":    {"name": "big-reason-model",  "relative_cost_weight": 10},
@@ -779,12 +781,12 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
 
 class JudgeVerdict(BaseModel):
     evidence: str       # Concise evidence tied to rubric criteria
-    is_faithful: bool   # Zero ungrounded hallucinations?
+    is_faithful: bool   # Are material claims supported by the supplied context?
     is_correct: bool    # Matches expected ground truth facts?
 
 JUDGE_SYSTEM_PROMPT = """You are an impartial AI Quality Judge.
 Compare the ACTUAL_OUTPUT against the RETRIEVED_CONTEXT and EXPECTED_FACTS.
-1. Set is_faithful=False if ACTUAL_OUTPUT states ANY claim not supported by RETRIEVED_CONTEXT.
+1. For a task that requires source-grounded RAG answers, set is_faithful=False when a material factual claim is unsupported by RETRIEVED_CONTEXT.
 2. Set is_correct=False if ACTUAL_OUTPUT omits key facts from EXPECTED_FACTS.
 Return concise evidence tied to each criterion and a structured verdict. Do not expose private chain-of-thought."""
 
@@ -871,12 +873,12 @@ INJECTION_PATTERNS = [
 ]
 
 def input_check(raw_query: str) -> tuple[bool, str]:
-    # 1. Block known prompt injection signatures + classifier check
+    # 1. Demonstration only: match a few known strings; this is not an injection classifier.
     for pattern in INJECTION_PATTERNS:
         if re.search(pattern, raw_query, re.IGNORECASE):
             return False, "BLOCKED_INPUT: Prompt injection attempt detected."
 
-    # 2. Scrub PII (emails / SSNs) before sending to external LLM
+    # 2. Demonstration only: basic email/SSN patterns are not a comprehensive PII detector.
     sanitized = re.sub(r"[\\w\\.-]+@[\\w\\.-]+\\.\\w+", "[REDACTED_EMAIL]", raw_query)
     sanitized = re.sub(r"\\b\\d{3}-\\d{2}-\\d{4}\\b", "[REDACTED_SSN]", sanitized)
     return True, sanitized
@@ -960,27 +962,37 @@ TOOLS_REGISTRY = {
     "issue_refund": lambda order_id, reason: {"refunded": True, "order_id": order_id}
 }
 
-def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
+def run_agent_loop(user_goal: str, principal, max_steps: int = 5) -> str:
     messages = [{"role": "user", "content": user_goal}]
 
     for step in range(1, max_steps + 1):
-        # 1. THINK: Ask LLM what to do next
-        llm_msg = call_llm_with_tools(messages, tools=TOOL_SCHEMAS)
+        # 1. PLAN: expose only tools allowed for this authenticated principal.
+        llm_msg = call_llm_with_tools(
+            messages,
+            tools=tool_schemas.allowed_for(principal)
+        )
         messages.append(llm_msg)
 
-        # If LLM didn't ask for a tool, it has finished and produced the final answer!
         if not llm_msg.get("tool_calls"):
             return llm_msg["content"]
 
-        # 2. ACT: Execute requested tool(s) safely
         for tool_call in llm_msg["tool_calls"]:
             fn_name = tool_call["name"]
             try:
                 args = json.loads(tool_call["arguments"])
-                observation = TOOLS_REGISTRY[fn_name](**args)
-            except Exception as err:
-                # 3. CHECK: Return error to LLM so it can fix its arguments next turn!
-                observation = {"error": f"Tool failed: {str(err)}. Fix arguments and retry."}
+                if fn_name not in TOOLS_REGISTRY:
+                    observation = {"error": "Tool is not available."}
+                elif not authorization.can_execute(principal, fn_name, args):
+                    observation = {"error": "Action is not authorized."}
+                else:
+                    # Apply timeout, spend policy, and idempotency controls in the real runtime.
+                    observation = TOOLS_REGISTRY[fn_name](**args)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                observation = {"error": "Tool arguments were invalid."}
+            except TimeoutError:
+                observation = {"error": "Tool timed out; verify write status before retrying."}
+            except Exception:
+                observation = {"error": "Tool failed; inspect the trace and follow bounded recovery."}
 
             messages.append({
                 "role": "tool",
@@ -988,7 +1000,7 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                 "content": json.dumps(observation)
             })
 
-    raise RuntimeError("Agent exceeded max_steps budget without resolving goal.")`
+    raise RuntimeError("Workflow reached its step budget; stop or resume through an explicit recovery path.")`
                 },
                 interviews: [
                     {
@@ -1051,26 +1063,26 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                 code: {
                     title: "capstone_composition.py // Illustrative End-to-End Flow",
                     explanation: "This illustrative composition shows how interfaces might connect. It is not a drop-in production service: each adapter, control, timeout, authorization check, trace, and recovery path must be implemented and tested.",
-                    snippet: `class ProductionAIApp:
-    """1 CONTEXT | 2 COST | 3 EVALS | 4 GUARDRAILS | 5 TOOLS = AN AI APP"""
+                    snippet: `class AIAppComposition:
+    """Reference composition: adapt components and controls to the actual workload."""
 
     def __init__(self, vector_db, router, guardrails, tools_registry, eval_logger):
         self.vector_db = vector_db          # Problem 1: Context (RAG)
-        self.router = router                # Problem 2: Cut Cost (Cache + Route)
-        self.eval_logger = eval_logger      # Problem 3: Measure It (Evals)
-        self.guardrails = guardrails        # Problem 4: Guardrails (In/Out Checks)
-        self.tools = tools_registry         # Problem 5: Tools + Agents
+        self.router = router                # Lens 2: Latency and cost
+        self.eval_logger = eval_logger      # Lens 3: Evaluation and regression review
+        self.guardrails = guardrails        # Lens 4: Security policy and output checks
+        self.tools = tools_registry         # Lens 5: scoped, authorized tools
 
-    def invoke(self, user_query: str) -> dict:
-        # [4] INPUT CHECK: Block prompt injection & redact PII
+    def invoke(self, user_query: str, principal) -> dict:
+        # [4] INPUT POLICY: validate request; enforce identity outside the model
         ok, clean_query = self.guardrails.input_check(user_query)
         if not ok:
             return {"status": "blocked_in", "answer": clean_query}
 
-        # [1] GIVE IT CONTEXT: Semantic vector retrieval + reranking
-        rag_docs = self.vector_db.hybrid_search(clean_query, top_k=4)
+        # [1] CONTEXT: permission-filtered retrieval + source provenance
+        rag_docs = self.vector_db.hybrid_search(clean_query, principal=principal, top_k=4)
 
-        # [2] CUT THE COST: Select model tier & attach cached system prefix
+        # [2] PERFORMANCE: select a tier against measured quality, latency, and spend
         model_tier = self.router.select_model(clean_query)
 
         # [5] TOOLS + AGENTS: Run ReAct loop with KV-cached prefix & RAG docs
@@ -1078,14 +1090,15 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
             model=model_tier,
             cached_prefix=self.router.static_prefix,
             context=rag_docs,
-            query=clean_query
+            query=clean_query,
+            tools=self.tools.allowed_for(principal)
         )
 
-        # [4] OUTPUT CHECK: Ensure grounding & safety before user sees it
+        # [4] OUTPUT POLICY: validate schema, source support, and business rules
         safe, final_answer = self.guardrails.output_check(raw_answer, rag_docs)
 
-        # [3] MEASURE IT: Log trace for continuous LLM-as-Judge evaluation
-        self.eval_logger.record_trace(clean_query, rag_docs, tool_traces, final_answer)
+        # [3] EVALUATION: retain privacy-aware traces and feed failures into the versioned test set
+        self.eval_logger.record_trace(clean_query, rag_docs, tool_traces, final_answer, redact_sensitive=True)
         return {"status": "ok", "model": model_tier, "answer": final_answer}`
                 },
                 interviews: [
@@ -1503,7 +1516,7 @@ const MASTER_QUIZ_QUESTIONS = [
                         </div>
 
                         <div class="border-t border-dashed border-zinc-800 pt-3">
-                            <div class="font-mono-tech text-[11px] text-white uppercase mb-2">04 // INDUSTRY BEST PRACTICES</div>
+                            <div class="font-mono-tech text-[11px] text-white uppercase mb-2">04 // ENGINEERING PRACTICES</div>
                             <ul class="space-y-2">
                                 ${mod.atoz.bestPractices.map(bp => `
                                     <li class="bg-zinc-900/50 border border-zinc-800 p-2.5 text-xs text-zinc-200 leading-relaxed">
