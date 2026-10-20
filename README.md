@@ -39,7 +39,7 @@ Node.js 22 or newer can run the dependency-free static tests:
 node --test scripts/quality.test.mjs
 ```
 
-The checks validate inline JavaScript syntax, seven-module navigation, detail-tab and ship-check wiring, responsive and accessibility hooks, and the absence of selected unqualified price/performance claims. GitHub Actions runs the checks on pushes to the review branch and `main`, plus pull requests targeting `main`.
+The checks validate inline JavaScript syntax, seven-module navigation, detail-tab and ship-check wiring, responsive and accessibility hooks, and the absence of selected unqualified price/performance claims. GitHub Actions runs the checks on pushes to `main`, pull requests targeting `main`, and manual workflow dispatches. Both workflows use Node.js 22.
 
 Static tests are not browser tests. Before release, also check desktop, tablet, and narrow mobile layouts; exercise every canvas control, module, quiz, and tab; verify external references; and inspect keyboard, screen-reader, and reduced-motion behavior.
 
