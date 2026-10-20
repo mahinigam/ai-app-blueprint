@@ -2,9 +2,10 @@ name: Validate static app
 
 on:
   push:
-    branches: [main, final-quality-pass]
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,6 +19,6 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Validate inline JavaScript and app structure
         run: node scripts/check-static.mjs
