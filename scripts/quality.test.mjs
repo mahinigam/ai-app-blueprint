@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 const projectRoot = new URL("../", import.meta.url);
 const html = readFileSync(new URL("index.html", projectRoot), "utf8");
@@ -71,4 +70,18 @@ test("technical references use HTTPS", () => {
   const urls = [...html.matchAll(/https:\/\/[A-Za-z0-9./_?=&%#-]+/g)].map((match) => match[0]);
   assert.ok(urls.length >= 8, "expected primary technical references and project metadata");
   assert.ok(urls.every((url) => url.startsWith("https://")));
+});
+
+test("examples enforce access boundaries before model context and tool execution", () => {
+  assert.ok(html.includes("tenant_id=req.principal.tenant_id"));
+  assert.ok(html.includes("allowed_permissions=req.principal.permissions"));
+  assert.ok(html.includes("tool_registry.allowed_for(req.principal)"));
+  assert.ok(html.includes("authorization.can_execute(principal, fn_name, args)"));
+  assert.ok(html.includes("filters are not an authorization boundary"));
+});
+
+test("incident guidance separates hypotheses from confirmed root causes", () => {
+  assert.ok(!html.includes("pinpoints any failure immediately"));
+  assert.ok(html.includes("Treat the first explanation as a hypothesis to test"));
+  assert.ok(html.includes("measure the actual latency and reliability impact against a baseline"));
 });
