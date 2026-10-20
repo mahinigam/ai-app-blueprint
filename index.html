@@ -530,7 +530,7 @@ def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
                 problem: "WHEN DOES RETRIEVAL IMPROVE A MODEL RESPONSE?",
                 title: "1. CONTEXT & RETRIEVAL: RAG WHEN IT FITS",
                 subtitle: "A model should not be assumed to know private or current application data. RAG retrieves selected passages from permitted sources at request time. Whether that improves answers depends on source coverage, parsing, access controls, retrieval quality, context assembly, and output verification.",
-                visHeader: "EMBEDDING VECTOR SPACE & COSINE CLUSTER RETRIEVAL",
+                visHeader: "RETRIEVAL PIPELINE: QUERY -> EVIDENCE -> VERIFY",
                 atoz: {
                     background: "When a user asks for a current internal policy, a model may not have the private or updated source. Retrieval-augmented generation (RAG) finds relevant passages from permitted sources and supplies them to the model at request time. Fine-tuning can shape behavior or task performance, but should not be treated as a reliable substitute for a searchable, frequently updated knowledge source.",
                     mentalModel: "1. EMBEDDINGS: an embedding model maps text to a numeric vector; similarity is a useful retrieval signal, not proof that a passage answers the query.\n2. RETRIEVAL: search only sources the user is allowed to access; consider lexical search for exact identifiers and metadata filters for scope.\n3. CONTEXT: preserve titles, section headings, table structure, source IDs, and permissions.\n4. GENERATION: provide selected passages with clear instructions to cite evidence and abstain when evidence is missing.\n5. EVALUATION: measure retrieval recall and answer faithfulness separately; inspect failures instead of assuming the top-ranked passage is correct.",
@@ -766,7 +766,7 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
                 problem: "YOU CAN'T IMPROVE WHAT YOU DON'T MEASURE.",
                 title: "3. EVALUATION: TEST QUALITY, CATCH REGRESSIONS",
                 subtitle: "Prompt, model, retrieval, and tool changes can improve one case while regressing another. A versioned evaluation set provides repeatable comparisons; combine deterministic checks with calibrated rubric-based review and inspect errors by category.",
-                visHeader: "AUTOMATED EVAL MATRIX & LLM-AS-JUDGE PIPELINE",
+                visHeader: "EVALUATION FIXTURES + CALIBRATED RUBRIC REVIEW",
                 atoz: {
                     background: "Prompt, model, retrieval, and tool changes can improve one case while regressing another. A versioned evaluation set gives you repeatable comparisons. Use deterministic assertions for objective rules and rubric-based review for semantic quality; inspect failures rather than relying on a single aggregate score.",
                     mentalModel: "1. EVALS (Golden Dataset): A representative, versioned set of cases should cover common paths, edge cases, refusals, permissions, and known failures. Run a fast subset in relevant CI checks and broader, higher-cost evaluations on a schedule or before release.\n2. LLM-AS-A-JUDGE: You use a strong rubric-guided LLM to grade your app's outputs across specific metrics: Faithfulness (did it hallucinate outside the RAG context?), Relevance (did it answer the user?), and Correctness (does it match ground truth?).",
@@ -861,7 +861,7 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
                 problem: "HOW DO WE KEEP DATA AND ACTIONS WITHIN TRUSTED BOUNDARIES?",
                 title: "4. SECURITY: TRUST BOUNDARIES & VALIDATION",
                 subtitle: "Do not treat untrusted user input or model output as trusted application data. Validate inputs, enforce permissions in code, and apply output checks appropriate to the use case.",
-                visHeader: "DUAL-FIREWALL SANDBOX: [IN CHECK] -> LLM -> [OUT CHECK]",
+                visHeader: "TRUST BOUNDARIES: INPUT -> AUTHORIZATION -> VALIDATION",
                 atoz: {
                     background: "AI applications face direct and indirect prompt injection, sensitive-data exposure, invalid output formats, and unsafe action requests. Treat these as application security problems: define assets, trust boundaries, permissions, and potential impact before selecting controls.",
                     mentalModel: "1. INPUT CONTROLS: validate request size and shape, authenticate the caller, apply rate limits, and screen known risky patterns where useful. Do not assume a classifier can reliably block every injection.\n2. OUTPUT CONTROLS: validate structured output, enforce business rules in application code, and check grounding or sensitive data where applicable. A model-generated answer is not made safe by one filter; keep authorization outside the model.",
@@ -947,8 +947,8 @@ def output_check(llm_draft: str, allowed_max_discount: int = 15) -> tuple[bool, 
                 tag: "[MODULE 05 // TOOLS & CONTROLLED ACTION]",
                 problem: "HOW CAN A MODEL REQUEST ACTION WITHOUT OWNING PERMISSIONS?",
                 title: "5. TOOL CALLING: CONTROLLED WORKFLOWS",
-                subtitle: "A raw LLM is just a brain in a jar—it can only predict text tokens. To query a live SQL database, refund an order, or run code, you give it hands via Tool Calling and an autonomous Agent Loop (Think -> Act -> Check -> Repeat).",
-                visHeader: "TRIANGLE AGENT LOOP: THINK -> TOOL -> DATABASE -> THINK",
+                subtitle: "A model can propose a structured tool call, but it does not own permissions or execute trusted actions by itself. The application validates arguments, authorizes each action, enforces limits, and returns bounded results. Add an agent loop only when iterative planning is actually needed.",
+                visHeader: "CONTROLLED TOOL FLOW: MODEL -> AUTHORIZE -> EXECUTE -> CHECK",
                 atoz: {
                     background: "What if the user says 'Cancel my last order and email me the receipt'? RAG can't solve this because it requires mutating live state in Stripe and SendGrid. Crucially: The model proposes a tool call. The backend validates the tool and arguments, checks the authenticated user's authorization, applies policy and budget limits, executes the operation, and returns a bounded result. A valid schema does not prove an action is allowed.",
                     mentalModel: "1. TOOL CALLING: You provide the LLM with a menu of JSON Schemas describing functions your server can run. When needed, the LLM pauses text generation and emits a structured Tool Call request.\n2. AGENT LOOP (ReAct — Reason + Act): Instead of a single pass, the system runs in a `while` loop:\n   • THINK: Model analyzes goal and decides which tool to call.\n   • ACT: Your code executes the tool against the Database/API.\n   • CHECK (Observe): Tool output (or error message!) is fed back to the LLM.\n   • REPEAT: Until the task is verified complete.",
@@ -969,7 +969,7 @@ def output_check(llm_draft: str, allowed_max_discount: int = 15) -> tuple[bool, 
                         { step: "1. THINK (LLM PLANNER)", detail: "LLM inspects user goal + conversation history and emits `tool_call: query_db(order_id='104')`." },
                         { step: "2. VALIDATE + AUTHORIZE", detail: "Validate the schema, authorize the current user and requested resource in server-side code, then apply policy and budget limits before execution." },
                         { step: "3. EXECUTE BOUNDED ACTION", detail: "Run the operation with least privilege, transaction/idempotency controls where relevant, and return only the data needed for the next step." },
-                        { step: "4. CHECK / OBSERVE", detail: "Result is appended to message history as `role: tool`. Loop returns to THINK until final answer is ready." }
+                        { step: "4. CHECK / OBSERVE", detail: "Return the tool result to the orchestrator. Continue only within step, time, and spend limits; stop when the task is complete or the safe exit condition is reached." }
                     ],
                     ascii: `              ┌──────────────────────┐
               │    1. THINK (LLM)    │◄────────────────┐
@@ -1055,7 +1055,7 @@ def run_agent_loop(user_goal: str, principal, max_steps: int = 5) -> str:
                 problem: "HOW DO THE COMPONENTS WORK TOGETHER UNDER REAL OPERATING CONSTRAINTS?",
                 title: "REFERENCE ARCHITECTURE: AN AI APPLICATION",
                 subtitle: "A useful reference flow is identity and authorization -> input checks -> optional retrieval and/or tools -> model call -> output validation -> response, with tracing and evaluation alongside the request. Add only components justified by workload and risk.",
-                visHeader: "END-TO-END PRODUCTION AI SYSTEM TOPOLOGY",
+                visHeader: "REFERENCE FLOW: OPTIONAL COMPONENTS + CROSS-CUTTING CONTROLS",
                 atoz: {
                     background: "The capstone connects the five teaching areas into one reference design. Actual systems vary: some do not need retrieval or agents, and all still need requirements, identity and access controls, resilience, observability, deployment, and data governance.",
                     mentalModel: "Follow the life of a single production request from left to right:\n1. USER sends prompt -> hits INPUT CHECK (#4 Guardrails).\n2. Passes into ROUTER + CACHE (#2 Cut Cost) to reuse cached prefixes and pick Small/Med/Big model.\n3. Before/during generation, RAG (#1 Context) injects relevant private vectors, and TOOLS (#5 Agents) allow multi-step database actions.\n4. Draft response passes through OUTPUT CHECK (#4 Guardrails) -> delivered as final ANSWER.\n5. Asynchronously, EVALS (#3 Measure It) grades production traces and gates every CI/CD change.",
@@ -1073,10 +1073,10 @@ def run_agent_loop(user_goal: str, principal, max_steps: int = 5) -> str:
                 arch: {
                     summary: "One adaptable request path, with optional retrieval and tools, explicit trust boundaries, observable dependencies, and measurable release criteria:",
                     flowSteps: [
-                        { step: "STAGE 1: USER -> INPUT CHECK (#4)", detail: "Validate input, enforce identity, data policy, and rate limits; monitor false positives and latency." },
-                        { step: "STAGE 2: ROUTER + CACHE (#2)", detail: "Check semantic cache, align KV prefix cache, route to Small/Med/Big model." },
-                        { step: "STAGE 3: RAG (#1) + LLM + TOOLS (#5)", detail: "Stitch embedded context chunks into prompt; execute ReAct tool-calling loop if actions are required." },
-                        { step: "STAGE 4: OUTPUT CHECK (#4) -> ANSWER", detail: "Verify citation grounding, schema validity, and safety policy before streaming to user." },
+                        { step: "STAGE 1: IDENTITY + INPUT POLICY (#4)", detail: "Authenticate the caller, authorize the request, validate input shape, and apply policy and rate limits before assembling model context." },
+                        { step: "STAGE 2: OPTIONAL CACHE + ROUTING (#2)", detail: "Reuse cached answers only when permissions and freshness allow; test provider-supported prompt caching and route to a model tier only when measured quality targets are met." },
+                        { step: "STAGE 3: OPTIONAL RETRIEVAL / TOOLS (#1, #5)", detail: "Retrieve permission-filtered evidence when needed. Expose tools only for tasks requiring actions; the backend validates, authorizes, limits, and executes each requested call." },
+                        { step: "STAGE 4: OUTPUT VALIDATION -> RESPONSE (#4)", detail: "Check required schemas, business rules, source support, and policy before delivery; provide a safe abstention or fallback when checks fail." },
                         { step: "CONTINUOUS EVALUATION", detail: "Run relevant regression checks on changed components and schedule broader or higher-cost evaluations; calibrate judges and inspect errors." }
                     ],
                     ascii: `                       ┌───────────────────┐
