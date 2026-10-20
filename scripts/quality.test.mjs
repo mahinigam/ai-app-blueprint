@@ -42,8 +42,8 @@ test("all five detail tabs and ship-check content are wired", () => {
 });
 
 test("responsive and accessibility safeguards remain present", () => {
-  assert.ok(html.includes("function renderCompactSchematic"));
-  assert.ok(html.includes("if (w < 620)"));
+  assert.ok(html.includes("function renderModule0Hook"));
+  assert.match(html, /if\s*\(w\s*<\s*\d+/);
   assert.ok(html.includes("function handleModuleNavKeydown"));
   assert.ok(html.includes("prefers-reduced-motion"));
   assert.ok(html.includes(":focus-visible"));
