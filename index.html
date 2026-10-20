@@ -1447,9 +1447,7 @@ const MASTER_QUIZ_QUESTIONS = [
         function selectModule(index) {
             if (!Number.isInteger(index) || index < 0 || index >= MODULES_DATA.length) return;
             if (currentModuleIndex === 5 && index !== 5 && simState.mod5AutoLoop) {
-                simState.mod5AutoLoop = false;
-                if (mod5AutoTimer !== null) clearInterval(mod5AutoTimer);
-                mod5AutoTimer = null;
+                stopMod5AutoLoop();
             }
             currentModuleIndex = index;
             const mod = MODULES_DATA[index];
@@ -1894,15 +1892,29 @@ const MASTER_QUIZ_QUESTIONS = [
             updateSimTelemetry();
         }
 
-        function toggleMod5Auto() {
-            simState.mod5AutoLoop = !simState.mod5AutoLoop;
+        function stopMod5AutoLoop() {
+            simState.mod5AutoLoop = false;
             if (mod5AutoTimer !== null) {
                 clearInterval(mod5AutoTimer);
                 mod5AutoTimer = null;
             }
+        }
+
+        function toggleMod5Auto() {
+            if (!simState.mod5AutoLoop && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                const badge = document.getElementById('simStatusBadge');
+                if (badge) badge.textContent = "AUTO-LOOP PAUSED (REDUCED MOTION)";
+                return;
+            }
+
             if (simState.mod5AutoLoop) {
+                stopMod5AutoLoop();
+            } else {
+                simState.mod5AutoLoop = true;
                 mod5AutoTimer = setInterval(() => {
-                    if (simState.mod5AutoLoop && currentModuleIndex === 5 && document.visibilityState === 'visible') {
+                    if (simState.mod5AutoLoop && currentModuleIndex === 5 &&
+                        document.visibilityState === 'visible' &&
+                        !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         stepMod5Agent();
                     }
                 }, 1200);
@@ -2628,6 +2640,10 @@ const MASTER_QUIZ_QUESTIONS = [
 
         const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
         motionPreference.addEventListener('change', () => {
+            if (motionPreference.matches && simState.mod5AutoLoop) {
+                stopMod5AutoLoop();
+                if (currentModuleIndex === 5) renderVisualizerControls(5);
+            }
             if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
             renderScene();
