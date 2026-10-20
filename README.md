@@ -41,3 +41,15 @@ For technical edits, prefer first-party documentation and standards (for example
 - Prefer useful interactions and concrete evidence over decorative animation.
 - Make mobile layouts, keyboard access, contrast, and reduced-motion behavior part of review.
 - Keep the five pillars as a learning lens; cover identity, reliability, observability, deployment, privacy, and data governance in the capstone.
+
+## Validation
+
+With Node.js 20 or newer installed, run the static checks locally:
+
+```bash
+node scripts/check-static.mjs
+```
+
+The check validates inline JavaScript syntax, duplicate static HTML IDs, module and tab wiring, ship-check coverage, quiz structure, and reduced-motion support. GitHub Actions runs the same check on pushes to `main` and `final-quality-pass`, and on pull requests targeting `main`.
+
+This is a static smoke check, not a replacement for browser testing. Before release, verify responsive layouts and exercise module navigation, each simulator, the quiz, and every detail tab in current desktop and mobile browsers.
