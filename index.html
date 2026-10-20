@@ -1926,11 +1926,15 @@ const MASTER_QUIZ_QUESTIONS = [
 
         function drawCanvasCaption(text, x, y, w, align = "center", strong = false) {
             ctx.save();
-            ctx.font = (strong ? "600 " : "") + "9px 'JetBrains Mono', monospace";
+            const font = (strong ? "600 " : "") + "9px 'JetBrains Mono', monospace";
+            ctx.font = font;
             ctx.fillStyle = strong ? "#d4d4d8" : "#71717a";
             ctx.textAlign = align;
             ctx.textBaseline = "middle";
-            ctx.fillText(String(text), x, y, Math.max(40, w));
+            const lines = wrapCanvasText(text, Math.max(40, w), font, 2);
+            const lineHeight = 11;
+            const topY = y - ((lines.length - 1) * lineHeight) / 2;
+            lines.forEach((line, index) => ctx.fillText(line, x, topY + index * lineHeight, Math.max(40, w)));
             ctx.restore();
         }
 
@@ -2186,7 +2190,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 ctx.restore();
             });
             drawCanvasCaption("SAMPLE CASE GRID", startX + gridW / 2, startY + gridW + 20, gridW + 60, "center", false);
-            const panelX = w * 0.70;
+            const panelX = Math.min(w * 0.72, startX + gridW + 180);
             drawFlowConnector(startX + gridW + 22, cy, panelX - 82, cy, false);
             drawTechBox(panelX, cy - 56, 160, 54, "RUBRIC REVIEW", "Grounding + completeness", false, true);
             drawTechBox(panelX, cy + 14, 160, 54, pct + "% SAMPLE PASS", passCount + " / " + simState.mod3Grid.length + " fixtures", false, true);
@@ -2328,7 +2332,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 { x: w * 0.50, label: "SECURITY", sub: "Least privilege + privacy" },
                 { x: w * 0.80, label: "ECONOMICS", sub: "Cost per successful task" }
             ];
-            crossCutting.forEach(item => drawTechBox(item.x, h - 36, Math.min(176, w * 0.25), 48, item.label, item.sub, false, true));
+            crossCutting.forEach(item => drawTechBox(item.x, Math.min(h - 34, y + 132), Math.min(176, w * 0.25), 48, item.label, item.sub, false, true));
         }
 
         function openMasterQuizModal() {
