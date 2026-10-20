@@ -183,6 +183,14 @@
             background: #52525b;
         }
 
+        .detail-tab-navigation {
+            scrollbar-width: thin;
+            scrollbar-color: #52525b #050505;
+            -webkit-overflow-scrolling: touch;
+        }
+        .detail-tab-navigation::-webkit-scrollbar { height: 4px; }
+        .detail-tab-navigation::-webkit-scrollbar-thumb { background: #52525b; }
+
         #detailPanelContent {
             min-width: 0;
             overflow-wrap: anywhere;
@@ -215,7 +223,7 @@
                                 <span class="inline-block w-2 h-2 bg-white rounded-full animate-ping"></span>
                             </div>
                             <h1 class="font-mono-tech text-base sm:text-lg font-bold tracking-tight text-white">
-                                AI ENGINEERING: THE 5 ENGINEERING LENSES
+                                AI APP BLUEPRINT
                             </h1>
                         </div>
                     </div>
@@ -225,7 +233,7 @@
                 </div>
 
                 <!-- Module Switcher -->
-                <nav class="module-navigation flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar" id="moduleNav" aria-label="Learning modules">
+                <nav class="module-navigation flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar" id="moduleNav" aria-label="Learning modules" onkeydown="handleModuleNavKeydown(event)">
                     <button onclick="selectModule(0)" id="nav-0" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         00. START HERE
                     </button>
@@ -339,7 +347,7 @@
                             <span class="font-bold text-white mt-1">EVALUATION</span>
                         </button>
                         <button onclick="selectModule(4)" id="pill-4" class="p-2 border border-dashed border-zinc-700 hover:border-white text-left transition flex flex-col justify-between">
-                            <span class="text-zinc-500">04 // SAFETY</span>
+                            <span class="text-zinc-500">04 // TRUST</span>
                             <span class="font-bold text-white mt-1">SECURITY & SAFETY</span>
                         </button>
                         <button onclick="selectModule(5)" id="pill-5" class="p-2 border border-dashed border-zinc-700 hover:border-white text-left transition flex flex-col justify-between">
@@ -347,8 +355,8 @@
                             <span class="font-bold text-white mt-1">CONTROLLED ACTION</span>
                         </button>
                         <button onclick="selectModule(6)" id="pill-6" class="p-2 border border-white bg-white/10 hover:bg-white hover:text-black text-left transition flex flex-col justify-between">
-                            <span class="opacity-70">= OUTPUT</span>
-                            <span class="font-bold mt-1">AN AI APP</span>
+                            <span class="opacity-70">06 // CAPSTONE</span>
+                            <span class="font-bold mt-1">INTEGRATED DESIGN</span>
                         </button>
                     </div>
                 </div>
@@ -358,22 +366,12 @@
             <div class="lg:col-span-5 flex flex-col">
                 <div class="blueprint-card flex flex-col h-full">
                     <!-- Sub-Navigation Tabs for the Right Panel -->
-                    <div role="tablist" aria-label="Module detail views" onkeydown="handleDetailTabKeydown(event)" class="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-5 gap-y-1 border-b border-dashed border-zinc-800 font-mono-tech text-xs bg-zinc-950/60">
-                        <button role="tab" aria-selected="true" aria-controls="detailPanelContent" tabindex="0" onclick="switchDetailTab('atoz')" id="tab-atoz" class="min-h-10 py-3 px-2 text-center whitespace-nowrap hover:text-white transition active-subtab">
-                            [CONCEPTS]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('arch')" id="tab-arch" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [ARCHITECTURE]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('code')" id="tab-code" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [CODE SPEC]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('interview')" id="tab-interview" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [INCIDENTS]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('ship')" id="tab-ship" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [SHIP CHECK]
-                        </button>
+                    <div role="tablist" aria-label="Module detail views" onkeydown="handleDetailTabKeydown(event)" class="detail-tab-navigation flex w-full min-w-0 items-stretch gap-1 overflow-x-auto whitespace-nowrap border-b border-dashed border-zinc-800 bg-zinc-950/60 font-mono-tech text-[11px]">
+                        <button type="button" role="tab" aria-selected="true" aria-controls="detailPanelContent" tabindex="0" onclick="switchDetailTab('atoz')" id="tab-atoz" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap hover:text-white transition active-subtab">[CONCEPTS]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('arch')" id="tab-arch" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[DIAGRAM]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('code')" id="tab-code" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[CODE]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('interview')" id="tab-interview" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[INCIDENTS]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('ship')" id="tab-ship" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[SHIP CHECK]</button>
                     </div>
 
                     <!-- Tab Content Body -->
@@ -431,7 +429,7 @@
                     mentalModel: "Use five questions to structure a design review:\n1. Context: what evidence is needed, and which sources may this user access?\n2. Performance: what latency, throughput, and cost budgets must be met?\n3. Evaluation: what test set and metrics indicate acceptable quality?\n4. Security: which data and actions are trusted, authorized, and auditable?\n5. Action: what capabilities can the model request, and what must deterministic application code decide?\nThese lenses complement—not replace—requirements analysis, reliability, privacy, observability, deployment, and governance.",
                     useCases: [
                         "Architectural System Design interviews where you must justify WHY a component exists rather than dropping vendor names.",
-                        "Migrating away from bloated wrapper frameworks to lean, debuggable native SDK code.",
+                        "Choosing between a provider SDK, orchestration framework, and managed service based on measured requirements.",
                         "Auditing an existing AI startup stack to find what's missing before launch."
                     ],
                     bestPractices: [
@@ -449,16 +447,17 @@
                         { step: "04 / SECURITY", detail: "Enforce identity and authorization in application code; layer privacy checks and output validation without treating filters as guarantees." },
                         { step: "05 / ACTION", detail: "Expose narrowly scoped tools, validate and authorize every call, bound retries and cost, and use an agent loop only when needed." }
                     ],
-                    ascii: `  [ PRODUCT REQUIREMENTS ]
-             │
-             ▼  (Design Constraints)
-┌────────────────────────────────────────────────────────┐
-│ 1. CONTEXT & RETRIEVAL ──► Evidence + Access Filters              │
-│ 2. PERFORMANCE         ──► Measured Cache + Routing │
-│ 3. EVALUATION          ──► Tests + Regression Review          │
-│ 4. SECURITY            ──► Identity + Policy + Validation    │
-│ 5. ACTION               ──► Authorized Tools + Limits + AGENTS    ──► Function Calling + Agent Loop │
-└────────────────────────────────────────────────────────┘`
+                    ascii: `  [ PRODUCT REQUIREMENTS + RISK ]
+                  │
+                  ▼
+┌──────────────────────────────────────────────────────┐
+│ 01  CONTEXT       → Permitted evidence + provenance  │
+│ 02  PERFORMANCE   → Measured latency + cost           │
+│ 03  EVALUATION    → Versioned tests + release gates   │
+│ 04  SECURITY      → Identity + policy + validation    │
+│ 05  ACTION        → Authorized tools + bounded steps  │
+└──────────────────────────────────────────────────────┘
+ CROSS-CUTTING: RELIABILITY · OBSERVABILITY · DEPLOYMENT`
                 },
                 code: {
                     title: "request_pipeline.py // Illustrative System Interfaces",
@@ -466,49 +465,61 @@
                     snippet: `from dataclasses import dataclass
 from typing import List, Dict, Any
 
-@dataclass
-class AIRequest:
+@dataclass(frozen=True)
+class AuthenticatedPrincipal:
     user_id: str
+    tenant_id: str
+    permissions: set[str]
+
+@dataclass(frozen=True)
+class AIRequest:
+    # Injected by verified server-side session/token middleware, not raw request JSON.
+    principal: AuthenticatedPrincipal
     query: str
 
 def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
-    # 4A. INPUT GUARDRAIL: Block prompt injection & scrub PII first
+    # 4A. INPUT POLICY: apply tested checks; filters are not an authorization boundary
     if not input_guardrail_check(req.query):
         return {"error": "Blocked by input safety policy."}
 
-    # 1. GIVE IT CONTEXT (RAG): Semantic search via embeddings
+    # 1. RETRIEVAL: scope every search to the authenticated principal.
     query_vector = embed_text(req.query)
-    relevant_chunks = vector_db.search(query_vector, top_k=5)
+    relevant_chunks = vector_db.search(
+        query_vector,
+        tenant_id=req.principal.tenant_id,
+        allowed_permissions=req.principal.permissions,
+        top_k=5,
+    )
 
-    # 2. CUT THE COST: Route by complexity & reuse cached system prefix
+    # 2. PERFORMANCE: route by task need; cache where supported and measured
     model_tier = route_query_complexity(req.query) # 'small' | 'medium' | 'big'
     response = call_llm_with_prefix_cache(
         model=model_tier,
         cached_prefix=STATIC_SYSTEM_INSTRUCTIONS,
         context=relevant_chunks,
         user_query=req.query,
-        tools=REGISTERED_TOOLS # 5. TOOLS + AGENTS
+        tools=tool_registry.allowed_for(req.principal) # least privilege
     )
 
-    # 4B. OUTPUT GUARDRAIL: Verify grounding & schema before user sees it
+    # 4B. OUTPUT POLICY: verify schema, business rules, and source support
     verified_output = output_guardrail_check(response, relevant_chunks)
 
-    # 3. MEASURE IT (EVALS): Async log trace for LLM-as-Judge scoring
-    async_log_for_evals(req.query, relevant_chunks, verified_output)
+    # 3. EVALUATION: log privacy-aware traces and queue versioned eval cases
+    trace.record(req.principal.user_id, source_ids=[c.source_id for c in relevant_chunks], model=model_tier)
     return {"answer": verified_output, "model_used": model_tier}`
                 },
                 interviews: [
                     {
                         q: "SCENARIO: A junior engineer proposes using LangChain, LlamaIndex, Pinecone, and CrewAI all together for a simple customer support bot. How do you respond?",
-                        symptom: "Over-engineered stack, 6-second cold latency, impossible to debug stack traces when prompts fail.",
+                        symptom: "A growing dependency graph can add operating cost, failure modes, and debugging overhead. Measure its latency and reliability impact against a baseline.",
                         rootCause: "Confusing tool collection with problem-solving.",
-                        fix: "Ask which of the 5 core problems each dependency solves. Replace heavy multi-agent wrappers with a single native SDK call, a Postgres pgvector table for RAG, a 20-line router, and a Golden Eval suite. Only add complexity when evals prove a simpler design fails."
+                        fix: "Start from the required behavior and non-functional constraints. Keep a dependency only when it adds measurable value in quality, maintainability, observability, reliability, or delivery speed. A direct SDK may be enough for a simple workflow; orchestration or managed retrieval can be justified when it materially reduces risk or effort."
                     },
                     {
                         q: "SCENARIO: In what order should you build the 5 pillars when starting a brand new AI product from scratch?",
-                        symptom: "Teams spend weeks building complex model routers (#2) before knowing if their RAG pipeline (#1) even answers accurately.",
+                        symptom: "Teams can over-invest in optimization before establishing whether the feature solves the user problem and meets its quality bar.",
                         rootCause: "Premature cost optimization before establishing quality baselines.",
-                        fix: "1st: Build Evals (#3) + basic RAG/Context (#1) with the smartest frontier model to prove the product works. 2nd: Add Guardrails (#4) & Tools (#5). 3rd: Cut the Cost (#2) with routing and caching while using your Evals (#3) to ensure quality doesn't drop."
+                        fix: "Define representative success criteria early. Build the smallest end-to-end path with identity, authorization, and basic observability in place. Add retrieval and tool execution only when needed. Test failure behavior, then optimize cost and latency while rerunning the same evaluation suite."
                     }
                 ]
             },
@@ -672,16 +683,18 @@ QUESTION: {query}"""
 A stable prefix may be cached by the provider when its caching rules are satisfied; this example does not guarantee a cache hit.]"""
 
 def classify_complexity(query: str) -> str:
+    # Toy heuristic only; replace or calibrate against representative requests.
     # Fast heuristic + lightweight classifier
     hard_signals = ["compare", "architect", "debug", "calculate", "why did", "multi-step"]
     score = sum(1 for w in hard_signals if w in query.lower())
     if len(query.split()) < 12 and score == 0:
-        return "SMALL"   # e.g., gemini-3.1-flash-lite / gpt-4o-mini
+        return "SMALL"   # relative tier; benchmark task quality and total cost
     elif score <= 1:
-        return "MEDIUM"  # e.g., a provider-specific low-latency model
-    return "BIG"         # e.g., a provider-specific high-capability model
+        return "MEDIUM"  # illustrative tier; calibrate routing against a representative set
+    return "BIG"         # illustrative tier; verify quality, latency, and spend by route
 
 MODEL_MAP = {
+    # Relative weights only, not current provider prices.
     "SMALL":  {"name": "small-fast-model",  "relative_cost_weight": 1},
     "MEDIUM": {"name": "medium-core-model", "relative_cost_weight": 3},
     "BIG":    {"name": "big-reason-model",  "relative_cost_weight": 10},
@@ -768,12 +781,12 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
 
 class JudgeVerdict(BaseModel):
     evidence: str       # Concise evidence tied to rubric criteria
-    is_faithful: bool   # Zero ungrounded hallucinations?
+    is_faithful: bool   # Are material claims supported by the supplied context?
     is_correct: bool    # Matches expected ground truth facts?
 
 JUDGE_SYSTEM_PROMPT = """You are an impartial AI Quality Judge.
 Compare the ACTUAL_OUTPUT against the RETRIEVED_CONTEXT and EXPECTED_FACTS.
-1. Set is_faithful=False if ACTUAL_OUTPUT states ANY claim not supported by RETRIEVED_CONTEXT.
+1. For a task that requires source-grounded RAG answers, set is_faithful=False when a material factual claim is unsupported by RETRIEVED_CONTEXT.
 2. Set is_correct=False if ACTUAL_OUTPUT omits key facts from EXPECTED_FACTS.
 Return concise evidence tied to each criterion and a structured verdict. Do not expose private chain-of-thought."""
 
@@ -860,12 +873,12 @@ INJECTION_PATTERNS = [
 ]
 
 def input_check(raw_query: str) -> tuple[bool, str]:
-    # 1. Block known prompt injection signatures + classifier check
+    # 1. Demonstration only: match a few known strings; this is not an injection classifier.
     for pattern in INJECTION_PATTERNS:
         if re.search(pattern, raw_query, re.IGNORECASE):
             return False, "BLOCKED_INPUT: Prompt injection attempt detected."
 
-    # 2. Scrub PII (emails / SSNs) before sending to external LLM
+    # 2. Demonstration only: basic email/SSN patterns are not a comprehensive PII detector.
     sanitized = re.sub(r"[\\w\\.-]+@[\\w\\.-]+\\.\\w+", "[REDACTED_EMAIL]", raw_query)
     sanitized = re.sub(r"\\b\\d{3}-\\d{2}-\\d{4}\\b", "[REDACTED_SSN]", sanitized)
     return True, sanitized
@@ -949,27 +962,37 @@ TOOLS_REGISTRY = {
     "issue_refund": lambda order_id, reason: {"refunded": True, "order_id": order_id}
 }
 
-def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
+def run_agent_loop(user_goal: str, principal, max_steps: int = 5) -> str:
     messages = [{"role": "user", "content": user_goal}]
 
     for step in range(1, max_steps + 1):
-        # 1. THINK: Ask LLM what to do next
-        llm_msg = call_llm_with_tools(messages, tools=TOOL_SCHEMAS)
+        # 1. PLAN: expose only tools allowed for this authenticated principal.
+        llm_msg = call_llm_with_tools(
+            messages,
+            tools=tool_schemas.allowed_for(principal)
+        )
         messages.append(llm_msg)
 
-        # If LLM didn't ask for a tool, it has finished and produced the final answer!
         if not llm_msg.get("tool_calls"):
             return llm_msg["content"]
 
-        # 2. ACT: Execute requested tool(s) safely
         for tool_call in llm_msg["tool_calls"]:
             fn_name = tool_call["name"]
             try:
                 args = json.loads(tool_call["arguments"])
-                observation = TOOLS_REGISTRY[fn_name](**args)
-            except Exception as err:
-                # 3. CHECK: Return error to LLM so it can fix its arguments next turn!
-                observation = {"error": f"Tool failed: {str(err)}. Fix arguments and retry."}
+                if fn_name not in TOOLS_REGISTRY:
+                    observation = {"error": "Tool is not available."}
+                elif not authorization.can_execute(principal, fn_name, args):
+                    observation = {"error": "Action is not authorized."}
+                else:
+                    # Apply timeout, spend policy, and idempotency controls in the real runtime.
+                    observation = TOOLS_REGISTRY[fn_name](**args)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                observation = {"error": "Tool arguments were invalid."}
+            except TimeoutError:
+                observation = {"error": "Tool timed out; verify write status before retrying."}
+            except Exception:
+                observation = {"error": "Tool failed; inspect the trace and follow bounded recovery."}
 
             messages.append({
                 "role": "tool",
@@ -977,7 +1000,7 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                 "content": json.dumps(observation)
             })
 
-    raise RuntimeError("Agent exceeded max_steps budget without resolving goal.")`
+    raise RuntimeError("Workflow reached its step budget; stop or resume through an explicit recovery path.")`
                 },
                 interviews: [
                     {
@@ -1040,26 +1063,26 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                 code: {
                     title: "capstone_composition.py // Illustrative End-to-End Flow",
                     explanation: "This illustrative composition shows how interfaces might connect. It is not a drop-in production service: each adapter, control, timeout, authorization check, trace, and recovery path must be implemented and tested.",
-                    snippet: `class ProductionAIApp:
-    """1 CONTEXT | 2 COST | 3 EVALS | 4 GUARDRAILS | 5 TOOLS = AN AI APP"""
+                    snippet: `class AIAppComposition:
+    """Reference composition: adapt components and controls to the actual workload."""
 
     def __init__(self, vector_db, router, guardrails, tools_registry, eval_logger):
         self.vector_db = vector_db          # Problem 1: Context (RAG)
-        self.router = router                # Problem 2: Cut Cost (Cache + Route)
-        self.eval_logger = eval_logger      # Problem 3: Measure It (Evals)
-        self.guardrails = guardrails        # Problem 4: Guardrails (In/Out Checks)
-        self.tools = tools_registry         # Problem 5: Tools + Agents
+        self.router = router                # Lens 2: Latency and cost
+        self.eval_logger = eval_logger      # Lens 3: Evaluation and regression review
+        self.guardrails = guardrails        # Lens 4: Security policy and output checks
+        self.tools = tools_registry         # Lens 5: scoped, authorized tools
 
-    def invoke(self, user_query: str) -> dict:
-        # [4] INPUT CHECK: Block prompt injection & redact PII
+    def invoke(self, user_query: str, principal) -> dict:
+        # [4] INPUT POLICY: validate request; enforce identity outside the model
         ok, clean_query = self.guardrails.input_check(user_query)
         if not ok:
             return {"status": "blocked_in", "answer": clean_query}
 
-        # [1] GIVE IT CONTEXT: Semantic vector retrieval + reranking
-        rag_docs = self.vector_db.hybrid_search(clean_query, top_k=4)
+        # [1] CONTEXT: permission-filtered retrieval + source provenance
+        rag_docs = self.vector_db.hybrid_search(clean_query, principal=principal, top_k=4)
 
-        # [2] CUT THE COST: Select model tier & attach cached system prefix
+        # [2] PERFORMANCE: select a tier against measured quality, latency, and spend
         model_tier = self.router.select_model(clean_query)
 
         # [5] TOOLS + AGENTS: Run ReAct loop with KV-cached prefix & RAG docs
@@ -1067,14 +1090,15 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
             model=model_tier,
             cached_prefix=self.router.static_prefix,
             context=rag_docs,
-            query=clean_query
+            query=clean_query,
+            tools=self.tools.allowed_for(principal)
         )
 
-        # [4] OUTPUT CHECK: Ensure grounding & safety before user sees it
+        # [4] OUTPUT POLICY: validate schema, source support, and business rules
         safe, final_answer = self.guardrails.output_check(raw_answer, rag_docs)
 
-        # [3] MEASURE IT: Log trace for continuous LLM-as-Judge evaluation
-        self.eval_logger.record_trace(clean_query, rag_docs, tool_traces, final_answer)
+        # [3] EVALUATION: retain privacy-aware traces and feed failures into the versioned test set
+        self.eval_logger.record_trace(clean_query, rag_docs, tool_traces, final_answer, redact_sensitive=True)
         return {"status": "ok", "model": model_tier, "answer": final_answer}`
                 },
                 interviews: [
@@ -1206,7 +1230,7 @@ const MASTER_QUIZ_QUESTIONS = [
                     "Move user-specific data into shared prompts across tenants"
                 ],
                 correct: 1,
-                explanation: "Caching behavior varies by provider, model, and request shape. Check actual hit-rate and billing data; never mix user-specific or tenant-specific content merely to improve reuse."
+                explanation: "Provider cache behavior depends on model, request shape, prefix rules, and billing semantics. A changing early prefix can reduce reuse, but do not assume every provider invalidates the same content. Inspect cache telemetry and never mix tenant-specific information to chase cache hits."
             },
             {
                 question: "3. What makes an LLM-as-a-judge evaluation more trustworthy?",
@@ -1366,6 +1390,12 @@ const MASTER_QUIZ_QUESTIONS = [
                 else btn.removeAttribute('aria-current');
             });
 
+            const activeNavButton = document.getElementById('nav-' + index);
+            if (activeNavButton) {
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                activeNavButton.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
+            }
+
             // Update bottom formula pills
             for (let i = 1; i <= 6; i++) {
                 const pill = document.getElementById(`pill-${i}`);
@@ -1383,6 +1413,8 @@ const MASTER_QUIZ_QUESTIONS = [
             document.getElementById('currentModuleTitle').textContent = mod.title;
             document.getElementById('currentModuleSubtitle').textContent = mod.subtitle;
             document.getElementById('visualizerHeaderTitle').textContent = mod.visHeader;
+            const schematic = document.getElementById('schematicCanvas');
+            if (schematic) schematic.setAttribute('aria-label', mod.shortTitle + ' schematic. ' + mod.arch.summary);
 
             // Render interactive controls for the canvas
             renderVisualizerControls(index);
@@ -1402,7 +1434,24 @@ const MASTER_QUIZ_QUESTIONS = [
             selectModule(next);
         }
 
-        function switchDetailTab(tabName) {
+        function handleModuleNavKeydown(event) {
+            const currentButton = event.target.closest && event.target.closest('.module-btn');
+            if (!currentButton) return;
+            const current = Number(currentButton.id.replace('nav-', ''));
+            if (!Number.isInteger(current)) return;
+            let next = current;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % MODULES_DATA.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + MODULES_DATA.length) % MODULES_DATA.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = MODULES_DATA.length - 1;
+            else return;
+            event.preventDefault();
+            selectModule(next);
+            const nextButton = document.getElementById('nav-' + next);
+            if (nextButton) nextButton.focus();
+        }
+
+                function switchDetailTab(tabName) {
             const tabs = ['atoz', 'arch', 'code', 'interview', 'ship'];
             if (!tabs.includes(tabName)) return;
             currentDetailTab = tabName;
@@ -1467,7 +1516,7 @@ const MASTER_QUIZ_QUESTIONS = [
                         </div>
 
                         <div class="border-t border-dashed border-zinc-800 pt-3">
-                            <div class="font-mono-tech text-[11px] text-white uppercase mb-2">04 // INDUSTRY BEST PRACTICES</div>
+                            <div class="font-mono-tech text-[11px] text-white uppercase mb-2">04 // ENGINEERING PRACTICES</div>
                             <ul class="space-y-2">
                                 ${mod.atoz.bestPractices.map(bp => `
                                     <li class="bg-zinc-900/50 border border-zinc-800 p-2.5 text-xs text-zinc-200 leading-relaxed">
@@ -1590,19 +1639,39 @@ const MASTER_QUIZ_QUESTIONS = [
                 .replace(/>/g, "&gt;");
         }
 
-        function copyCurrentCode() {
+        async function copyCurrentCode() {
             const mod = MODULES_DATA[currentModuleIndex];
-            const temp = document.createElement('textarea');
-            temp.value = mod.code.snippet;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-
             const btn = document.getElementById('copyCodeBtn');
-            if (btn) {
-                btn.textContent = "[COPIED TO CLIPBOARD ✓]";
-                setTimeout(() => { btn.textContent = "[COPY CODE]"; }, 1800);
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(mod.code.snippet);
+                } else {
+                    const temp = document.createElement('textarea');
+                    temp.value = mod.code.snippet;
+                    temp.setAttribute('readonly', '');
+                    temp.style.position = 'fixed';
+                    temp.style.opacity = '0';
+                    document.body.appendChild(temp);
+                    temp.select();
+                    const copied = document.execCommand('copy');
+                    document.body.removeChild(temp);
+                    if (!copied) throw new Error('Clipboard fallback was blocked');
+                }
+                if (btn) {
+                    btn.textContent = '[COPIED ✓]';
+                    btn.setAttribute('aria-label', 'Code copied to clipboard');
+                    setTimeout(() => {
+                        if (document.getElementById('copyCodeBtn') === btn) {
+                            btn.textContent = '[COPY CODE]';
+                            btn.setAttribute('aria-label', 'Copy code example');
+                        }
+                    }, 1800);
+                }
+            } catch (error) {
+                if (btn) {
+                    btn.textContent = '[COPY FAILED]';
+                    btn.setAttribute('aria-label', 'Copy failed; select the code manually');
+                }
             }
         }
 
@@ -1686,6 +1755,7 @@ const MASTER_QUIZ_QUESTIONS = [
             }
 
             ctrl.querySelectorAll('button').forEach(button => {
+                button.type = 'button';
                 const label = button.textContent.trim();
                 const isAction = label.includes('[STEP AGENT LOOP');
                 const isEnabledToggle = label.includes('PREFIX CACHE: ON') || label.includes('AUTO-LOOP: ON');
@@ -1890,6 +1960,111 @@ const MASTER_QUIZ_QUESTIONS = [
             ctx.restore();
         }
 
+        function renderCompactSchematic(w, h, cx, cy) {
+            let nodes = [];
+            let footer = "ILLUSTRATIVE FLOW · MEASURE YOUR WORKLOAD";
+
+            if (currentModuleIndex === 0) {
+                nodes = simState.mod0Collapsed ? [
+                    { label: "01 / CONTEXT", sub: "Evidence + access", active: true },
+                    { label: "02 / PERFORMANCE", sub: "Latency + cost" },
+                    { label: "03 / EVALUATION", sub: "Tests + regression" },
+                    { label: "04 / SECURITY", sub: "Identity + policy" },
+                    { label: "05 / ACTION", sub: "Authorized tools" }
+                ] : [
+                    { label: "DEFINE REQUIREMENTS", sub: "User, quality, latency, risk", active: true },
+                    { label: "MAP CAPABILITIES", sub: "Only what the use case needs" },
+                    { label: "ASSESS TRADE-OFFS", sub: "Cost, failure modes, ownership" },
+                    { label: "MEASURE THE BASELINE", sub: "Evidence before optimization" }
+                ];
+                footer = simState.mod0Collapsed ? "FIVE LENSES · NOT A UNIVERSAL STACK" : "START WITH THE REQUIREMENT · NOT THE TOOL LIST";
+            } else if (currentModuleIndex === 1) {
+                nodes = simState.mod1Clustered ? [
+                    { label: "USER QUERY", sub: "Authenticated request" },
+                    { label: "FILTER + RETRIEVE", sub: "Only permitted source passages", active: true },
+                    { label: "BUILD CONTEXT", sub: "Source IDs + relevant evidence" },
+                    { label: "ANSWER + VERIFY", sub: "Cite support or abstain" }
+                ] : [
+                    { label: "USER QUERY", sub: "Question without evidence" },
+                    { label: "MODEL GENERATION", sub: "No retrieval context", active: true },
+                    { label: "UNSUPPORTED CLAIM", sub: "Grounding risk" }
+                ];
+                footer = "RETRIEVAL QUALITY ≠ ANSWER QUALITY";
+            } else if (currentModuleIndex === 2) {
+                nodes = [
+                    { label: simState.mod2CacheEnabled ? "STABLE PREFIX" : "PREFIX REPROCESSED", sub: simState.mod2CacheEnabled ? "Cache-eligible, not guaranteed" : "Cache disabled in this demo", active: simState.mod2CacheEnabled },
+                    { label: "TASK ROUTER", sub: "Choose against quality targets" },
+                    { label: simState.mod2TaskSize + " MODEL TIER", sub: "Relative cost/latency example", active: true },
+                    { label: "MEASURE RESULTS", sub: "Quality · p95 latency · spend" }
+                ];
+                footer = "SIMULATION ONLY · NO LIVE PROVIDER METRICS";
+            } else if (currentModuleIndex === 3) {
+                const passed = simState.mod3Grid.filter(item => item.passed).length;
+                nodes = [
+                    { label: "VERSIONED EVAL SET", sub: "Representative, repeatable cases" },
+                    { label: "DETERMINISTIC CHECKS", sub: "Schemas + objective constraints" },
+                    { label: "CALIBRATED REVIEW", sub: "Judge + human comparison" },
+                    { label: "DEMO: " + passed + "/25 CASES PASS", sub: "Illustrative fixture result", active: true }
+                ];
+                footer = "DEMO FIXTURES · NOT A LIVE BENCHMARK";
+            } else if (currentModuleIndex === 4) {
+                const injected = simState.mod4AttackType === "injection";
+                const outputRisk = simState.mod4AttackType === "hallucination";
+                nodes = [
+                    { label: "USER INPUT", sub: "Untrusted by default" },
+                    { label: "IDENTITY + POLICY", sub: injected ? "Demo flags a risky input" : "Authentication + request checks", active: injected },
+                    { label: "MODEL", sub: "No security boundary" },
+                    { label: "OUTPUT VALIDATION", sub: outputRisk ? "Demo flags output pattern" : "Schema + source support", active: outputRisk },
+                    { label: "DELIVER OR FALL BACK", sub: "Application policy decides" }
+                ];
+                footer = "FILTERS HELP · SERVER-SIDE POLICY ENFORCES";
+            } else if (currentModuleIndex === 5) {
+                if (simState.mod5AutoLoop && tick % 75 === 0) {
+                    simState.mod5Step = (simState.mod5Step + 1) % 4;
+                    updateSimTelemetry();
+                }
+                const stages = [
+                    { label: "MODEL PROPOSES TOOL", sub: "Structured request" },
+                    { label: "VALIDATE + AUTHORIZE", sub: "User, resource, policy" },
+                    { label: "EXECUTE BOUNDED ACTION", sub: "Least privilege + idempotency" },
+                    { label: "OBSERVE OR STOP", sub: "Deadline · budget · exit rule" }
+                ];
+                nodes = stages.map((stage, index) => ({ ...stage, active: index === simState.mod5Step }));
+                footer = "THE BACKEND OWNS EXECUTION PERMISSIONS";
+            } else {
+                nodes = [
+                    { label: "REQUEST + IDENTITY", sub: "Authenticate and scope access" },
+                    { label: "CONTEXT IF NEEDED", sub: "Permission-filtered retrieval" },
+                    { label: "MODEL + ROUTING", sub: "Optional tools within policy", active: true },
+                    { label: "VALIDATE OUTPUT", sub: "Schema · grounding · policy" },
+                    { label: "RESPONSE + TRACE", sub: "Observable, safe failure path" }
+                ];
+                footer = "EVALS · RELIABILITY · OBSERVABILITY · DEPLOYMENT";
+            }
+
+            const boxWidth = Math.max(180, Math.min(w - 36, 420));
+            const boxHeight = nodes.length >= 5 ? 34 : 38;
+            const gap = nodes.length >= 5 ? 10 : 13;
+            const flowHeight = nodes.length * boxHeight + (nodes.length - 1) * gap;
+            const startY = Math.max(28, (h - flowHeight - 38) / 2);
+            const centers = nodes.map((node, index) => startY + boxHeight / 2 + index * (boxHeight + gap));
+
+            for (let index = 0; index < centers.length - 1; index++) {
+                drawDottedLine(cx, centers[index] + boxHeight / 2, cx, centers[index + 1] - boxHeight / 2, [3, 4], -tick * 0.4, 0.65);
+            }
+            nodes.forEach((node, index) => {
+                drawTechBox(cx, centers[index], boxWidth, boxHeight, node.label, node.sub, Boolean(node.active), true);
+            });
+
+            ctx.save();
+            ctx.font = "10px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "#a1a1aa";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(footer, cx, h - 17, Math.max(120, w - 20));
+            ctx.restore();
+        }
+
         function renderScene() {
             tick += 1;
             const w = canvas.width / (window.devicePixelRatio || 1);
@@ -1903,7 +2078,9 @@ const MASTER_QUIZ_QUESTIONS = [
             drawDottedLine(cx, 0, cx, h, [2, 8], 0, 0.12);
             drawDottedLine(0, cy, w, cy, [2, 8], 0, 0.12);
 
-            if (currentModuleIndex === 0) {
+            if (w < 620) {
+                renderCompactSchematic(w, h, cx, cy);
+            } else if (currentModuleIndex === 0) {
                 renderModule0Hook(w, h, cx, cy);
             } else if (currentModuleIndex === 1) {
                 renderModule1RAG(w, h, cx, cy);
@@ -1921,8 +2098,15 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && document.visibilityState === 'visible') {
                 animationFrameId = requestAnimationFrame(renderScene);
+            } else {
+                animationFrameId = null;
             }
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'visible') return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || animationFrameId === null) renderScene();
+        });
 
         // SCENE 0: TOOL ECOSYSTEM -> FIVE ENGINEERING LENSES
         function renderModule0Hook(w, h, cx, cy) {
