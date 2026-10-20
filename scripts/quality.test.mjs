@@ -83,5 +83,5 @@ test("examples enforce access boundaries before model context and tool execution
 test("incident guidance separates hypotheses from confirmed root causes", () => {
   assert.ok(!html.includes("pinpoints any failure immediately"));
   assert.ok(html.includes("Treat the first explanation as a hypothesis to test"));
-  assert.ok(html.toLowerCase().includes("measure the actual latency and reliability impact against a baseline"));
+  assert.ok(html.toLowerCase().includes("measure its latency and reliability impact against a baseline"));
 });
