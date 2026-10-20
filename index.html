@@ -831,6 +831,9 @@ Compare the ACTUAL_OUTPUT against the RETRIEVED_CONTEXT and EXPECTED_FACTS.
 Return concise evidence tied to each criterion and a structured verdict. Do not expose private chain-of-thought."""
 
 def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
+    if not golden_dataset:
+        raise ValueError("Evaluation dataset must contain at least one case.")
+
     results = []
     for case in golden_dataset:
         actual_output = app_pipeline_fn(case["query"], case["context"])
@@ -841,7 +844,7 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
             schema=JudgeVerdict
         )
         passed = verdict.is_faithful and verdict.is_correct
-        results.append({"id": case["id"], "passed": passed, "reason": verdict.reasoning})
+        results.append({"id": case["id"], "passed": passed, "evidence": verdict.evidence})
 
     score = sum(1 for r in results if r["passed"]) / len(results)
     MIN_PASS_RATE = 0.85  # Illustrative threshold; set from task risk and evaluation evidence
@@ -926,12 +929,14 @@ def input_check(raw_query: str) -> tuple[bool, str]:
     sanitized = re.sub(r"\\b\\d{3}-\\d{2}-\\d{4}\\b", "[REDACTED_SSN]", sanitized)
     return True, sanitized
 
-def output_check(llm_draft: str, allowed_max_discount: int) -> tuple[bool, str]:
+def output_check(llm_draft: str, retrieved_docs: list[dict], allowed_max_discount: int) -> tuple[bool, str]:
     # 1. Prevent system prompt leakage
     if "STATIC_SYSTEM_PREFIX" in llm_draft:
         return False, "I cannot fulfill that request."
 
-    # 2. Example rule: pass this from trusted server-side policy; 15% is not universal.
+    # Source support must be verified by a task-specific verifier using retrieved_docs.
+    # The check below only demonstrates one business rule; it is not a complete safety filter.
+    # Supply allowed_max_discount from trusted server-side policy; no universal default is assumed.
     discounts = [int(m) for m in re.findall(r"(\\d+)%\\s*off", llm_draft.lower())]
     if any(d > allowed_max_discount for d in discounts):
         return False, "BLOCKED_OUTPUT: Unauthorized pricing commitment intercepted."
@@ -1122,10 +1127,11 @@ CROSS-CUTTING: PRIVACY · RELIABILITY · OBSERVABILITY · EVALUATION`
                     snippet: `class AIAppComposition:
     """Reference composition: adapt components and controls to the actual workload."""
 
-    def __init__(self, vector_db, router, guardrails, tools_registry, eval_logger):
+    def __init__(self, vector_db, router, guardrails, tools_registry, eval_logger, policy):
         self.vector_db = vector_db          # Problem 1: Context (RAG)
         self.router = router                # Lens 2: Latency and cost
         self.eval_logger = eval_logger      # Lens 3: Evaluation and regression review
+        self.policy = policy                # Trusted server-side business rules
         self.guardrails = guardrails        # Lens 4: Security policy and output checks
         self.tools = tools_registry         # Lens 5: scoped, authorized tools
 
@@ -1151,11 +1157,16 @@ CROSS-CUTTING: PRIVACY · RELIABILITY · OBSERVABILITY · EVALUATION`
         )
 
         # [4] OUTPUT POLICY: validate schema, source support, and business rules
-        safe, final_answer = self.guardrails.output_check(raw_answer, rag_docs)
+        safe, final_answer = self.guardrails.output_check(
+            raw_answer,
+            rag_docs,
+            allowed_max_discount=self.policy.allowed_max_discount,
+        )
 
         # [3] EVALUATION: retain privacy-aware traces and feed failures into the versioned test set
         self.eval_logger.record_trace(clean_query, rag_docs, tool_traces, final_answer, redact_sensitive=True)
-        return {"status": "ok", "model": model_tier, "answer": final_answer}`
+        status = "ok" if safe else "blocked_out"
+        return {"status": status, "model": model_tier, "answer": final_answer}`
                 },
                 interviews: [
                     {
