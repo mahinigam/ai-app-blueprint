@@ -119,6 +119,10 @@ test("text architecture diagrams match optional components and trust boundaries"
   assert.ok(!html.includes("[STATIC PREFIX (Cached KV)]"));
   assert.ok(!html.includes("[SAFE ANSWER]"));
   assert.ok(!html.includes("5-8 high-level semantic tools"));
+  assert.ok(!html.includes("Request passes through Prefix Cache alignment"));
+  assert.ok(!html.includes("1M-token context window instead of building RAG"));
+  assert.ok(!html.includes("gates every CI/CD change"));
+  assert.ok(!html.includes("Production costs spike 4x overnight"));
 });
 
 test("quiz modal traps keyboard focus while open", () => {
@@ -155,6 +159,22 @@ test("examples do not reintroduce known unqualified performance claims", () => {
   for (const phrase of forbidden) {
     assert.ok(!html.toLowerCase().includes(phrase.toLowerCase()), "stale claim found: " + phrase);
   }
+});
+
+test("dynamic HTML and clipboard fallback cleanup are hardened", () => {
+  const escapeStart = html.indexOf("function escapeHtml(str)");
+  const escapeEnd = html.indexOf("async function copyCurrentCode", escapeStart);
+  assert.ok(escapeStart >= 0 && escapeEnd > escapeStart, "HTML escaping helper exists");
+  const escapeFn = html.slice(escapeStart, escapeEnd);
+  for (const entity of ['"&quot;"', "'&#39;'"]) {
+    assert.ok(escapeFn.includes(entity), "HTML escaping should encode " + entity);
+  }
+  const copyStart = html.indexOf("async function copyCurrentCode");
+  const copyEnd = html.indexOf("function renderVisualizerControls", copyStart);
+  assert.ok(copyStart >= 0 && copyEnd > copyStart, "copy handler exists");
+  const copyFn = html.slice(copyStart, copyEnd);
+  assert.ok(copyFn.includes("finally"), "clipboard fallback must remove temporary nodes on failure");
+  assert.ok(copyFn.includes("temp.remove()"), "clipboard fallback must remove its temporary textarea");
 });
 
 test("technical references use HTTPS", () => {
