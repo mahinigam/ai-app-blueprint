@@ -543,7 +543,7 @@ def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
                                      [TOP-K RELEVANT DOCS]
                                               │
                                               ▼
-                       [STITCH INTO PROMPT] ──► [LLM] ──► [GROUNDED ANSWER]`
+                       [STITCH EVIDENCE] ──► [LLM] ──► [ANSWER + SOURCES]`
                 },
                 code: {
                     title: "rag_retrieval.py // Illustrative Retrieval Pipeline",
@@ -627,7 +627,7 @@ QUESTION: {query}"""
                     background: "In production, two things inflate your LLM bill and latency: (1) Repeating the exact same 8,000 tokens of system instructions, few-shot examples, and tool schemas on every single API call, and (2) Using a high-capability model for every request, including routine classification or formatting that a cheaper model may handle. Compare current provider prices and task-specific quality before choosing a tier.",
                     mentalModel: "1. PROMPT CACHING (Reuse the same long prefix): Prompt caching may reduce repeated-input cost and time to first token when a provider recognizes a reusable prefix. Exact eligibility, cache duration, minimum prefix length, and discounts vary by provider and model; measure cache-hit rate and billed tokens instead of assuming a fixed saving.\n2. MODEL ROUTING (Small task -> Small model): A lightweight classifier or embedding router inspects the incoming query and dispatches easy queries to a Small model, moderate ones to Medium, and complex reasoning to a Big model.",
                     useCases: [
-                        "High-volume SaaS chatbots where 70% of queries are simple FAQ/intent lookups and 30% require multi-step synthesis.",
+                        "High-volume chatbots where traffic analysis shows a substantial share of simple requests alongside a smaller set of complex, multi-step tasks.",
                         "Agentic workflows where the same 15,000-token codebase context or schema definition is queried 20 times in a session.",
                         "Real-time voice AI with a strict time-to-first-token target; define the target from user experience testing and measure end-to-end latency."
                     ],
@@ -886,7 +886,7 @@ def output_check(llm_draft: str, allowed_max_discount: int = 15) -> tuple[bool, 
                         q: "SCENARIO: Adding model-based input and output checks materially increases p95 latency. How would you reduce user-visible delay without sending unsafe content?",
                         symptom: "Guardrails double total response latency and token cost.",
                         rootCause: "Running sequential heavy LLM calls for every safety check.",
-                        fix: "1) Use tiered rails: 1ms Regex/Deterministic checks + 25ms BERT/RoBERTa fine-tuned small classifiers (like Llama-Guard-8B or DeBERTa injection detectors) instead of frontier LLMs. 2) Run Input Guardrails in PARALLEL with optimistic LLM execution: start the main LLM stream immediately, and if the fast Input Rail flags a violation at 40ms, abort the main LLM stream before any tokens are flushed to the user."
+                        fix: "Use tiered controls: deterministic checks for known patterns, specialist classifiers only where measured detection quality justifies them, and server-side authorization as the security boundary. You may run independent checks in parallel, but buffer any content that policy requires you to verify before delivery. Measure latency and false-positive/false-negative rates on your own workload."
                     }
                 ]
             },
@@ -1811,7 +1811,7 @@ const MASTER_QUIZ_QUESTIONS = [
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
 
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', () => { resizeCanvas(); if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) renderScene(); });
 
         // Helper drawing primitives in strict monochrome technical aesthetic
         function drawDottedLine(x1, y1, x2, y2, dash = [4, 4], offset = 0, alpha = 0.6) {
@@ -2342,6 +2342,13 @@ const MASTER_QUIZ_QUESTIONS = [
                 resizeCanvas();
                 renderScene();
             }
+        });
+
+        const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+        motionPreference.addEventListener('change', () => {
+            if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+            renderScene();
         });
 
         // Boot application on window load
