@@ -183,6 +183,14 @@
             background: #52525b;
         }
 
+        .detail-tab-navigation {
+            scrollbar-width: thin;
+            scrollbar-color: #52525b #050505;
+            -webkit-overflow-scrolling: touch;
+        }
+        .detail-tab-navigation::-webkit-scrollbar { height: 4px; }
+        .detail-tab-navigation::-webkit-scrollbar-thumb { background: #52525b; }
+
         #detailPanelContent {
             min-width: 0;
             overflow-wrap: anywhere;
@@ -215,7 +223,7 @@
                                 <span class="inline-block w-2 h-2 bg-white rounded-full animate-ping"></span>
                             </div>
                             <h1 class="font-mono-tech text-base sm:text-lg font-bold tracking-tight text-white">
-                                AI ENGINEERING: THE 5 ENGINEERING LENSES
+                                AI APP BLUEPRINT
                             </h1>
                         </div>
                     </div>
@@ -225,7 +233,7 @@
                 </div>
 
                 <!-- Module Switcher -->
-                <nav class="module-navigation flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar" id="moduleNav" aria-label="Learning modules">
+                <nav class="module-navigation flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar" id="moduleNav" aria-label="Learning modules" onkeydown="handleModuleNavKeydown(event)">
                     <button onclick="selectModule(0)" id="nav-0" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         00. START HERE
                     </button>
@@ -339,7 +347,7 @@
                             <span class="font-bold text-white mt-1">EVALUATION</span>
                         </button>
                         <button onclick="selectModule(4)" id="pill-4" class="p-2 border border-dashed border-zinc-700 hover:border-white text-left transition flex flex-col justify-between">
-                            <span class="text-zinc-500">04 // SAFETY</span>
+                            <span class="text-zinc-500">04 // TRUST</span>
                             <span class="font-bold text-white mt-1">SECURITY & SAFETY</span>
                         </button>
                         <button onclick="selectModule(5)" id="pill-5" class="p-2 border border-dashed border-zinc-700 hover:border-white text-left transition flex flex-col justify-between">
@@ -358,22 +366,12 @@
             <div class="lg:col-span-5 flex flex-col">
                 <div class="blueprint-card flex flex-col h-full">
                     <!-- Sub-Navigation Tabs for the Right Panel -->
-                    <div role="tablist" aria-label="Module detail views" onkeydown="handleDetailTabKeydown(event)" class="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-5 gap-y-1 border-b border-dashed border-zinc-800 font-mono-tech text-xs bg-zinc-950/60">
-                        <button role="tab" aria-selected="true" aria-controls="detailPanelContent" tabindex="0" onclick="switchDetailTab('atoz')" id="tab-atoz" class="min-h-10 py-3 px-2 text-center whitespace-nowrap hover:text-white transition active-subtab">
-                            [CONCEPTS]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('arch')" id="tab-arch" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [ARCHITECTURE]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('code')" id="tab-code" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [CODE SPEC]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('interview')" id="tab-interview" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [INCIDENTS]
-                        </button>
-                        <button role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('ship')" id="tab-ship" class="min-h-10 py-3 px-2 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">
-                            [SHIP CHECK]
-                        </button>
+                    <div role="tablist" aria-label="Module detail views" onkeydown="handleDetailTabKeydown(event)" class="detail-tab-navigation flex w-full min-w-0 items-stretch gap-1 overflow-x-auto whitespace-nowrap border-b border-dashed border-zinc-800 bg-zinc-950/60 font-mono-tech text-[11px]">
+                        <button type="button" role="tab" aria-selected="true" aria-controls="detailPanelContent" tabindex="0" onclick="switchDetailTab('atoz')" id="tab-atoz" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap hover:text-white transition active-subtab">[CONCEPTS]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('arch')" id="tab-arch" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[DIAGRAM]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('code')" id="tab-code" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[CODE]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('interview')" id="tab-interview" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[INCIDENTS]</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="detailPanelContent" tabindex="-1" onclick="switchDetailTab('ship')" id="tab-ship" class="min-h-10 flex-none px-3 py-3 text-center whitespace-nowrap text-zinc-400 hover:text-white transition">[SHIP CHECK]</button>
                     </div>
 
                     <!-- Tab Content Body -->
@@ -1366,6 +1364,12 @@ const MASTER_QUIZ_QUESTIONS = [
                 else btn.removeAttribute('aria-current');
             });
 
+            const activeNavButton = document.getElementById('nav-' + index);
+            if (activeNavButton) {
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                activeNavButton.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
+            }
+
             // Update bottom formula pills
             for (let i = 1; i <= 6; i++) {
                 const pill = document.getElementById(`pill-${i}`);
@@ -1383,6 +1387,8 @@ const MASTER_QUIZ_QUESTIONS = [
             document.getElementById('currentModuleTitle').textContent = mod.title;
             document.getElementById('currentModuleSubtitle').textContent = mod.subtitle;
             document.getElementById('visualizerHeaderTitle').textContent = mod.visHeader;
+            const schematic = document.getElementById('schematicCanvas');
+            if (schematic) schematic.setAttribute('aria-label', mod.shortTitle + ' schematic. ' + mod.arch.summary);
 
             // Render interactive controls for the canvas
             renderVisualizerControls(index);
@@ -1686,6 +1692,7 @@ const MASTER_QUIZ_QUESTIONS = [
             }
 
             ctrl.querySelectorAll('button').forEach(button => {
+                button.type = 'button';
                 const label = button.textContent.trim();
                 const isAction = label.includes('[STEP AGENT LOOP');
                 const isEnabledToggle = label.includes('PREFIX CACHE: ON') || label.includes('AUTO-LOOP: ON');
