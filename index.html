@@ -1421,7 +1421,24 @@ const MASTER_QUIZ_QUESTIONS = [
             selectModule(next);
         }
 
-        function switchDetailTab(tabName) {
+        function handleModuleNavKeydown(event) {
+            const currentButton = event.target.closest && event.target.closest('.module-btn');
+            if (!currentButton) return;
+            const current = Number(currentButton.id.replace('nav-', ''));
+            if (!Number.isInteger(current)) return;
+            let next = current;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % MODULES_DATA.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + MODULES_DATA.length) % MODULES_DATA.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = MODULES_DATA.length - 1;
+            else return;
+            event.preventDefault();
+            selectModule(next);
+            const nextButton = document.getElementById('nav-' + next);
+            if (nextButton) nextButton.focus();
+        }
+
+                function switchDetailTab(tabName) {
             const tabs = ['atoz', 'arch', 'code', 'interview', 'ship'];
             if (!tabs.includes(tabName)) return;
             currentDetailTab = tabName;
@@ -1609,19 +1626,39 @@ const MASTER_QUIZ_QUESTIONS = [
                 .replace(/>/g, "&gt;");
         }
 
-        function copyCurrentCode() {
+        async function copyCurrentCode() {
             const mod = MODULES_DATA[currentModuleIndex];
-            const temp = document.createElement('textarea');
-            temp.value = mod.code.snippet;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-
             const btn = document.getElementById('copyCodeBtn');
-            if (btn) {
-                btn.textContent = "[COPIED TO CLIPBOARD ✓]";
-                setTimeout(() => { btn.textContent = "[COPY CODE]"; }, 1800);
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(mod.code.snippet);
+                } else {
+                    const temp = document.createElement('textarea');
+                    temp.value = mod.code.snippet;
+                    temp.setAttribute('readonly', '');
+                    temp.style.position = 'fixed';
+                    temp.style.opacity = '0';
+                    document.body.appendChild(temp);
+                    temp.select();
+                    const copied = document.execCommand('copy');
+                    document.body.removeChild(temp);
+                    if (!copied) throw new Error('Clipboard fallback was blocked');
+                }
+                if (btn) {
+                    btn.textContent = '[COPIED ✓]';
+                    btn.setAttribute('aria-label', 'Code copied to clipboard');
+                    setTimeout(() => {
+                        if (document.getElementById('copyCodeBtn') === btn) {
+                            btn.textContent = '[COPY CODE]';
+                            btn.setAttribute('aria-label', 'Copy code example');
+                        }
+                    }, 1800);
+                }
+            } catch (error) {
+                if (btn) {
+                    btn.textContent = '[COPY FAILED]';
+                    btn.setAttribute('aria-label', 'Copy failed; select the code manually');
+                }
             }
         }
 
@@ -2048,8 +2085,15 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && document.visibilityState === 'visible') {
                 animationFrameId = requestAnimationFrame(renderScene);
+            } else {
+                animationFrameId = null;
             }
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'visible') return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || animationFrameId === null) renderScene();
+        });
 
         // SCENE 0: TOOL ECOSYSTEM -> FIVE ENGINEERING LENSES
         function renderModule0Hook(w, h, cx, cy) {
