@@ -963,7 +963,7 @@ def output_check(llm_draft: str, allowed_max_discount: int) -> tuple[bool, str]:
                 visHeader: "CONTROLLED TOOL FLOW: MODEL -> AUTHORIZE -> EXECUTE -> CHECK",
                 atoz: {
                     background: "What if the user says 'Cancel my last order and email me the receipt'? RAG can't solve this because it requires mutating live state in Stripe and SendGrid. Crucially: The model proposes a tool call. The backend validates the tool and arguments, checks the authenticated user's authorization, applies policy and budget limits, executes the operation, and returns a bounded result. A valid schema does not prove an action is allowed.",
-                    mentalModel: "1. TOOL CALLING: You provide the LLM with JSON schemas describing functions the server may expose. When needed, the model emits a structured tool-call request.\\n2. OPTIONAL AGENT LOOP: For tasks that need iteration, the orchestrator repeats:\\n   • PROPOSE: Model requests a tool call.\\n   • AUTHORIZE + EXECUTE: Server-side code checks permissions and applies limits before action.\\n   • OBSERVE: A bounded result or typed error returns to the orchestrator.\\n   • STOP: Finish when the task is complete, a budget is reached, or safe recovery is not possible.",
+                    mentalModel: "1. TOOL CALLING: You provide the LLM with JSON schemas describing functions the server may expose. When needed, the model emits a structured tool-call request.\n2. OPTIONAL AGENT LOOP: For tasks that need iteration, the orchestrator repeats:\n   • PROPOSE: Model requests a tool call.\n   • AUTHORIZE + EXECUTE: Server-side code checks permissions and applies limits before action.\n   • OBSERVE: A bounded result or typed error returns to the orchestrator.\n   • STOP: Finish when the task is complete, a budget is reached, or safe recovery is not possible.",
                     useCases: [
                         "Coding agents (like Claude Code / Cursor) that read files, run terminal tests, see compiler errors, and fix their own bugs in a loop.",
                         "Customer support agents that look up live shipping status, process refunds, and update CRM records.",
@@ -1346,6 +1346,7 @@ const MASTER_QUIZ_QUESTIONS = [
         ];
 
         let currentModuleIndex = 0;
+        let mod5AutoTimer = null;
         let currentDetailTab = 'atoz';
         let animationFrameId = null;
         let quizReturnFocus = null;
@@ -1434,6 +1435,11 @@ const MASTER_QUIZ_QUESTIONS = [
 
         function selectModule(index) {
             if (!Number.isInteger(index) || index < 0 || index >= MODULES_DATA.length) return;
+            if (currentModuleIndex === 5 && index !== 5 && simState.mod5AutoLoop) {
+                simState.mod5AutoLoop = false;
+                if (mod5AutoTimer !== null) clearInterval(mod5AutoTimer);
+                mod5AutoTimer = null;
+            }
             currentModuleIndex = index;
             const mod = MODULES_DATA[index];
 
@@ -1873,7 +1879,19 @@ const MASTER_QUIZ_QUESTIONS = [
 
         function toggleMod5Auto() {
             simState.mod5AutoLoop = !simState.mod5AutoLoop;
+            if (mod5AutoTimer !== null) {
+                clearInterval(mod5AutoTimer);
+                mod5AutoTimer = null;
+            }
+            if (simState.mod5AutoLoop) {
+                mod5AutoTimer = setInterval(() => {
+                    if (simState.mod5AutoLoop && currentModuleIndex === 5 && document.visibilityState === 'visible') {
+                        stepMod5Agent();
+                    }
+                }, 1200);
+            }
             renderVisualizerControls(5);
+            updateSimTelemetry();
         }
 
         function selectMod6Node(node) {
@@ -1890,9 +1908,11 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (currentModuleIndex === 0) {
                 if (!simState.mod0Collapsed) {
+                    document.getElementById("visualizerHeaderTitle").textContent = "TOOL ECOSYSTEM // COMPARE BY REQUIREMENT";
                     badge.textContent = "STATE: TOOL ECOSYSTEM";
                     out.innerHTML = `> Comparing tools without a requirement or failure mode creates unnecessary complexity.<br>> Click <span class="underline">[SHOW ENGINEERING LENSES]</span> to group common design questions; not every system needs all five.`;
                 } else {
+                    document.getElementById("visualizerHeaderTitle").textContent = "FIVE ENGINEERING LENSES // DESIGN REVIEW";
                     badge.textContent = "STATE: DESIGN LENSES";
                     out.innerHTML = ` > Each dependency should map to a requirement: <span class="text-white">[1. CONTEXT] [2. COST] [3. EVALUATION] [4. SECURITY] [5. ACTION]</span>.<br>> Treat these as useful design lenses, not permanent or exhaustive interfaces.`;
                 }
@@ -1908,7 +1928,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 const costMap = { SMALL: 'RELATIVE LOW', MEDIUM: 'RELATIVE MID', BIG: 'RELATIVE HIGH' };
                 const latMap = { SMALL: 'RELATIVE FAST', MEDIUM: 'RELATIVE MID', BIG: 'RELATIVE SLOW' };
                 const discount = simState.mod2CacheEnabled ? 'SIMULATED CACHE HIT (SAVINGS VARY)' : 'SIMULATED CACHE MISS (PREFIX REPROCESSED)';
-                badge.textContent = `ROUTE: ${simState.mod2TaskSize} MODEL | CACHE: ${simState.mod2CacheEnabled ? 'HIT' : 'MISS'}`;
+                badge.textContent = `SIMULATED ROUTE: ${simState.mod2TaskSize} | PREFIX CACHE DEMO: ${simState.mod2CacheEnabled ? 'ON' : 'OFF'}`;
                 out.innerHTML = `> Prefix Status: <span class="text-white">${discount}</span><br>> Router Dispatch: Task routed to <span class="text-white font-bold">[${simState.mod2TaskSize} MODEL]</span> - > Relative cost tier: ${costMap[simState.mod2TaskSize]} | Relative latency tier: ${latMap[simState.mod2TaskSize]} (illustrative).`;
             } else if (currentModuleIndex === 3) {
                 const score = simState.mod3Version === 'v2_grounded' ? '88% (22/25 DEMO CASES)' : '56% (14/25 DEMO CASES)';
@@ -2111,7 +2131,29 @@ const MASTER_QUIZ_QUESTIONS = [
                 { label: "04  SECURITY", sub: "Trust + policy" },
                 { label: "05  ACTION", sub: "Authorized tools" }
             ];
-            drawCanvasCaption("DESIGN QUESTIONS · NOT A UNIVERSAL STACK", cx, 22, w - 28, "center", true);
+
+            if (!simState.mod0Collapsed) {
+                drawCanvasCaption("TOOL ECOSYSTEM · START FROM A REQUIREMENT", cx, 22, w - 28, "center", true);
+                const words = (simState.mod0Particles || []).map(item => item.word);
+                const cols = w < 620 ? 3 : 4;
+                const margin = w < 620 ? 14 : 24;
+                const gapX = 6;
+                const cellW = (w - margin * 2 - (cols - 1) * gapX) / cols;
+                const rows = Math.ceil(words.length / cols);
+                const top = 56;
+                const stepY = Math.min(w < 620 ? 28 : 35, (h - 92 - top) / Math.max(1, rows));
+                words.forEach((word, index) => {
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    const x = margin + cellW / 2 + col * (cellW + gapX);
+                    const y = top + row * stepY;
+                    drawTechBox(x, y, cellW, Math.max(18, Math.min(w < 620 ? 23 : 28, stepY - 3)), word, "", false, true);
+                });
+                drawCanvasCaption("TOOLS OVERLAP · COMPARE BY JOB, COST, AND FAILURE MODE", cx, h - 18, w - 24);
+                return;
+            }
+
+            drawCanvasCaption("FIVE ENGINEERING LENSES · NOT A UNIVERSAL STACK", cx, 22, w - 28, "center", true);
 
             if (w < 620) {
                 const left = 26;
@@ -2139,8 +2181,8 @@ const MASTER_QUIZ_QUESTIONS = [
             const ry = Math.min(h * 0.315, (h - nodeH) / 2 - 18);
             const centerY = cy + 4;
             const positions = pillars.map((p, i) => {
-                const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
-                return { x: cx + Math.cos(a) * rx, y: centerY + Math.sin(a) * ry };
+                const angle = -Math.PI / 2 + i * Math.PI * 2 / 5;
+                return { x: cx + Math.cos(angle) * rx, y: centerY + Math.sin(angle) * ry };
             });
             positions.forEach(p => drawFlowConnector(cx, centerY, p.x, p.y, false));
             positions.forEach((p, i) => drawTechBox(p.x, p.y, nodeW, nodeH, pillars[i].label, pillars[i].sub, false, true));
@@ -2413,35 +2455,38 @@ const MASTER_QUIZ_QUESTIONS = [
         // SCENE 6: PUTTING IT ALL TOGETHER (= AN AI APP)
         function renderModule6FullStack(w, h, cx, cy) {
             const compact = w < 620;
+            const selectedNode = simState.mod6SelectedNode;
             drawCanvasCaption("REFERENCE FLOW · OPTIONAL COMPONENTS ARE WORKLOAD-DEPENDENT", cx, 22, w - 28, "center", true);
 
             if (compact) {
                 const nodes = [
-                    { label: "REQUEST + IDENTITY", sub: "Authenticate + authorize" },
-                    { label: "OPTIONAL RETRIEVAL", sub: "Permission-filtered evidence" },
-                    { label: "MODEL + OPTIONAL TOOLS", sub: "Bounded orchestration" },
-                    { label: "VALIDATE + RESPOND", sub: "Schema + policy checks" },
-                    { label: "OBSERVE + EVALUATE", sub: "Traces + regression tests" }
+                    { key: "IN_CHECK", label: "REQUEST + IDENTITY", sub: "Authenticate + authorize" },
+                    { key: "ROUTER", label: "CACHE / ROUTING", sub: "Optional · measured" },
+                    { key: "RAG", label: "RETRIEVAL", sub: "Optional · permission filtered" },
+                    { key: "LLM", label: "MODEL", sub: "Draft / propose" },
+                    { key: "TOOLS", label: "TOOL RUNTIME", sub: "Optional · authorized" },
+                    { key: "OUT_CHECK", label: "VALIDATE + RESPOND", sub: "Policy / source support" },
+                    { key: "EVALS", label: "OBSERVE + EVALUATE", sub: "Traces / regression tests" }
                 ];
                 const boxW = Math.max(220, w - 44);
                 const top = 49;
-                const step = Math.min(64, (h - 101) / nodes.length);
+                const step = Math.min(42, (h - 98) / nodes.length);
                 nodes.forEach((node, i) => {
                     const y = top + i * step;
-                    if (i > 0) drawFlowConnector(cx, y - step + 21, cx, y - 21, i === 4);
-                    drawTechBox(cx, y, boxW, 42, node.label, node.sub, false, true);
+                    if (i > 0) drawFlowConnector(cx, y - step + 20, cx, y - 20, selectedNode === node.key);
+                    drawTechBox(cx, y, boxW, 40, node.label, node.sub, selectedNode === node.key, true);
                 });
                 drawCanvasCaption("SECURITY · RELIABILITY · COST · PRIVACY", cx, h - 16, w - 24, "center", true);
                 return;
             }
 
             const nodes = [
-                { label: "REQUEST", sub: "Identity + input" },
-                { label: "RETRIEVE", sub: "Optional + ACLs" },
-                { label: "MODEL", sub: "Generate / decide" },
-                { label: "TOOL RUNTIME", sub: "Optional + authorized" },
-                { label: "VALIDATE", sub: "Schema + policy" },
-                { label: "RESPONSE", sub: "Deliver / abstain" }
+                { key: "IN_CHECK", label: "REQUEST", sub: "Identity + input" },
+                { key: "RAG", label: "RETRIEVE", sub: "Optional + ACLs" },
+                { key: "LLM", label: "MODEL", sub: "Generate / decide" },
+                { key: "TOOLS", label: "TOOL RUNTIME", sub: "Optional + authorized" },
+                { key: "OUT_CHECK", label: "VALIDATE", sub: "Schema + policy" },
+                { key: "RESPONSE", label: "RESPONSE", sub: "Deliver / abstain" }
             ];
             const margin = 24;
             const nodeW = Math.min(112, (w - margin * 2 - 5 * 8) / nodes.length);
@@ -2449,18 +2494,24 @@ const MASTER_QUIZ_QUESTIONS = [
             const y = cy - 25;
             const xs = nodes.map((node, i) => margin + nodeW / 2 + i * (nodeW + gap));
             nodes.forEach((node, i) => {
-                if (i > 0) drawFlowConnector(xs[i - 1] + nodeW / 2 + 2, y, xs[i] - nodeW / 2 - 7, y, false);
-                drawTechBox(xs[i], y, nodeW, 60, node.label, node.sub, false, true);
+                if (i > 0) drawFlowConnector(xs[i - 1] + nodeW / 2 + 2, y, xs[i] - nodeW / 2 - 7, y, selectedNode === node.key);
+                drawTechBox(xs[i], y, nodeW, 60, node.label, node.sub, selectedNode === node.key, true);
                 drawDottedLine(xs[i], y + 31, xs[i], y + 69, [2, 4], 0, 0.32);
             });
+
+            // Cache and routing are optional/cost-dependent; they are shown above the request path, not assumed for every app.
+            drawTechBox(xs[2], y - 75, 144, 42, "CACHE / ROUTER", "Optional · measured", selectedNode === "ROUTER", true);
+            drawDottedLine(xs[2], y - 54, xs[2], y - 32, [2, 4], 0, 0.38);
+
             drawDottedLine(margin, y + 69, w - margin, y + 69, [2, 4], 0, 0.38);
             drawCanvasCaption("TRACING + METRICS + EVALUATION + ALERTS", cx, y + 88, w - 40, "center", true);
             const crossCutting = [
-                { x: w * 0.20, label: "RELIABILITY", sub: "Timeouts + fallback" },
-                { x: w * 0.50, label: "SECURITY", sub: "Least privilege + privacy" },
-                { x: w * 0.80, label: "ECONOMICS", sub: "Cost per successful task" }
+                { key: "RELIABILITY", x: w * 0.125, label: "RELIABILITY", sub: "Timeouts + fallback" },
+                { key: "IN_CHECK", x: w * 0.375, label: "SECURITY", sub: "Least privilege + privacy" },
+                { key: "ECONOMICS", x: w * 0.625, label: "ECONOMICS", sub: "Cost per successful task" },
+                { key: "EVALS", x: w * 0.875, label: "EVALUATION", sub: "Traces + regression" }
             ];
-            crossCutting.forEach(item => drawTechBox(item.x, Math.min(h - 34, y + 132), Math.min(176, w * 0.25), 48, item.label, item.sub, false, true));
+            crossCutting.forEach(item => drawTechBox(item.x, Math.min(h - 34, y + 132), Math.min(142, w * 0.22), 48, item.label, item.sub, selectedNode === item.key, true));
         }
 
         function openMasterQuizModal() {
