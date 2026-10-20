@@ -662,7 +662,7 @@ QUESTION: {query}"""
                         fix: "Preserve source IDs, document title, section heading, page, table headers, and permission metadata during parsing. Compare structure-aware chunking, parent-child retrieval, and contextualized chunks on representative queries; extra context can increase indexing cost and noise."
                     },
                     {
-                        q: "SCENARIO: Why shouldn't we just dump all 500 company documents into a 1M-token context window instead of building RAG?",
+                        q: "SCENARIO: Why not put an entire large document corpus into a long-context model instead of building RAG?",
                         symptom: "High time-to-first-token and cost per request, with weaker answers for some facts positioned deep in a very large context.",
                         rootCause: "Long prompts can increase processing cost and latency, and models may not use all positions equally well. The effect depends on model, task, prompt content, and workload.",
                         fix: "Long context and retrieval can be alternatives or complements. Large prompts may raise latency and cost, while retrieval can miss important evidence. Compare both approaches on your corpus using answer quality, recall, latency, and total cost; do not assume fixed percentage gains."
@@ -692,7 +692,7 @@ QUESTION: {query}"""
                     ]
                 },
                 arch: {
-                    summary: "Request passes through Prefix Cache alignment -> Complexity Router -> Tiered Model Execution.",
+                    summary: "A prompt-cache opportunity may precede task-based model routing; measure cache hits and model-tier trade-offs against quality, latency, and cost.",
                     flowSteps: [
                         { step: "1. PROMPT PREFIX ALIGNMENT", detail: "Keep static content stable to improve cache eligibility where supported; verify actual hit rates and provider-specific prefix requirements." },
                         { step: "2. CACHE TELEMETRY", detail: "Confirm actual prefix-cache eligibility, hit rate, and billing from provider telemetry. Treat semantic answer caching as a separate optional design with identity, permission, model-version, and freshness checks." },
@@ -1074,7 +1074,7 @@ def run_agent_loop(user_goal: str, principal, max_steps: int = 5) -> str:
                 visHeader: "REFERENCE FLOW: OPTIONAL COMPONENTS + CROSS-CUTTING CONTROLS",
                 atoz: {
                     background: "The capstone connects the five teaching areas into one reference design. Actual systems vary: some do not need retrieval or agents, and all still need requirements, identity and access controls, resilience, observability, deployment, and data governance.",
-                    mentalModel: "Follow the life of a single production request from left to right:\n1. USER sends prompt -> hits INPUT CHECK (#4 Guardrails).\n2. Passes into ROUTER + CACHE (#2 Cut Cost) to reuse cached prefixes and pick Small/Med/Big model.\n3. Before/during generation, RAG (#1 Context) injects relevant private vectors, and TOOLS (#5 Agents) allow multi-step database actions.\n4. Draft response passes through OUTPUT CHECK (#4 Guardrails) -> delivered as final ANSWER.\n5. Asynchronously, EVALS (#3 Measure It) grades production traces and gates every CI/CD change.",
+                    mentalModel: "A typical request begins with identity, authorization, and input policy checks. Depending on the workload, it may use prompt or answer caching, retrieve permission-filtered evidence, or request tool execution. The model returns a draft or proposed action; the application validates required output and business rules before response. Tracing and evaluation help monitor quality, but do not gate every change unless your release process explicitly wires them in.",
                     useCases: [
                         "Whiteboarding the complete end-to-end architecture in a Senior AI Engineer System Design interview.",
                         "Diagnosing latency, accuracy, safety, or cost bottlenecks in any live LLM system.",
@@ -1165,7 +1165,7 @@ CROSS-CUTTING: PRIVACY · RELIABILITY · OBSERVABILITY · EVALUATION`
                         fix: "Describe the request path that actually exists in your system: identity and policy checks, optional retrieval, model call, optional tool execution, output validation, and response. Measure p50/p95 at the component and end-to-end levels, define budgets from user requirements, and account for queueing, retries, and asynchronous evaluation."
                     },
                     {
-                        q: "SCENARIO: Production costs spike 4x overnight, latency doubles, and Eval faithfulness drops by 10%. How do you use the 5-Pillar Architecture to triage the incident in 5 minutes?",
+                        q: "SCENARIO: Costs, latency, and evaluation quality worsen after a release. How would you triage the incident?",
                         symptom: "Simultaneous cost, latency, and quality regression after a release.",
                         rootCause: "Several causes are plausible: a retrieval/indexing change, prompt-cache eligibility change, traffic or model mix shift, tool-loop growth, or an upstream provider incident. Treat the first explanation as a hypothesis to test, not a confirmed cause.",
                         fix: "Build a timeline and compare changes against a known-good baseline. Segment cost, p95 latency, error rates, cache telemetry, retrieved-token counts, tool-step counts, and evaluation results by model, route, tenant, and release. Use those signals to narrow hypotheses; no single pillar metric identifies every failure."
