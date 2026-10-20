@@ -80,6 +80,66 @@ test("all diagrams use one responsive path and defined module renderers", () => 
   assert.ok(!/w\s*<\s*(540|560)\b/.test(html), "stale diagram breakpoints found");
 });
 
+test("interactive diagrams stay in sync with their controls", () => {
+  const landingStart = html.indexOf("function renderModule0Hook");
+  const landingEnd = html.indexOf("// SCENE 1:", landingStart);
+  assert.ok(landingStart >= 0 && landingEnd > landingStart, "landing diagram renderer exists");
+  const landing = html.slice(landingStart, landingEnd);
+  assert.ok(landing.includes("simState.mod0Collapsed"), "landing control must change the drawing");
+  assert.ok(landing.includes("simState.mod0Particles"), "tool ecosystem view must render its tool list");
+
+  const autoStart = html.indexOf("function toggleMod5Auto");
+  const autoEnd = html.indexOf("function selectMod6Node", autoStart);
+  assert.ok(autoStart >= 0 && autoEnd > autoStart, "agent auto-loop handler exists");
+  const autoLoop = html.slice(autoStart, autoEnd);
+  assert.ok(autoLoop.includes("setInterval"), "auto-loop should advance the sample workflow");
+  assert.ok(autoLoop.includes("clearInterval"), "auto-loop should be cancellable");
+  assert.ok(autoLoop.includes("currentModuleIndex === 5"), "auto-loop should run only while its module is active");
+  assert.ok(autoLoop.includes("document.visibilityState === 'visible'"), "auto-loop should pause while the page is hidden");
+
+  const capstoneStart = html.indexOf("function renderModule6FullStack");
+  const capstoneEnd = html.indexOf("function openMasterQuizModal", capstoneStart);
+  assert.ok(capstoneStart >= 0 && capstoneEnd > capstoneStart, "capstone renderer exists");
+  const capstone = html.slice(capstoneStart, capstoneEnd);
+  assert.ok(capstone.includes("simState.mod6SelectedNode"), "capstone renderer should read selected layer state");
+  for (const key of ["ROUTER", "RAG", "LLM", "TOOLS", "OUT_CHECK", "EVALS"]) {
+    assert.ok(capstone.includes('selectedNode === "' + key + '"'), "capstone diagram does not highlight " + key);
+  }
+});
+
+test("text architecture diagrams match optional components and trust boundaries", () => {
+  assert.ok(html.includes("Provider-specific cache eligibility; hits are not guaranteed"));
+  assert.ok(html.includes("[OPTIONAL CACHE / MODEL ROUTING]"));
+  assert.ok(html.includes("[OPTIONAL RETRIEVAL]"));
+  assert.ok(html.includes("[OPTIONAL TOOL RUNTIME: AUTHORIZE -> EXECUTE -> CHECK]"));
+  assert.ok(html.includes("Prompt filters are defense in depth; authorization is enforced in code."));
+  assert.ok(html.includes("VERIFY SOURCE SUPPORT OR ABSTAIN"));
+  assert.ok(!html.includes("[STATIC PREFIX (Cached KV)]"));
+  assert.ok(!html.includes("[SAFE ANSWER]"));
+  assert.ok(!html.includes("5-8 high-level semantic tools"));
+});
+
+test("quiz modal traps keyboard focus while open", () => {
+  assert.ok(html.includes("const focusable = [...modal.querySelectorAll("));
+  assert.ok(html.includes("document.activeElement === first"));
+  assert.ok(html.includes("document.activeElement === last"));
+  assert.ok(html.includes("event.target === event.currentTarget"));
+});
+
+test("workflow triggers and Node.js versions are consistent", () => {
+  const qualityWorkflow = readFileSync(new URL("../.github/workflows/quality.yml", import.meta.url), "utf8");
+  const appWorkflow = readFileSync(new URL("../.github/workflows/validate-static-app.yml", import.meta.url), "utf8");
+  for (const [name, workflow] of [["quality", qualityWorkflow], ["static app", appWorkflow]]) {
+    assert.ok(workflow.includes("branches: [main]"), name + " workflow must run on main");
+    assert.ok(workflow.includes("pull_request:"), name + " workflow must validate pull requests");
+    assert.ok(workflow.includes("workflow_dispatch:"), name + " workflow must support manual runs");
+    assert.ok(workflow.includes("node-version: 22"), name + " workflow must use Node.js 22");
+    assert.ok(!workflow.includes("final-quality-pass") && !workflow.includes("final-quality-overhaul"), name + " workflow should not depend on obsolete branch names");
+  }
+  assert.ok(qualityWorkflow.includes("node --test scripts/quality.test.mjs"));
+  assert.ok(appWorkflow.includes("node scripts/check-static.mjs"));
+});
+
 test("examples do not reintroduce known unqualified performance claims", () => {
   const forbidden = [
     "100% CACHE HIT",
