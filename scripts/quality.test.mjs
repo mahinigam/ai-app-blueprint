@@ -102,9 +102,11 @@ test("interactive diagrams stay in sync with their controls", () => {
   assert.ok(capstoneStart >= 0 && capstoneEnd > capstoneStart, "capstone renderer exists");
   const capstone = html.slice(capstoneStart, capstoneEnd);
   assert.ok(capstone.includes("simState.mod6SelectedNode"), "capstone renderer should read selected layer state");
-  for (const key of ["ROUTER", "RAG", "LLM", "TOOLS", "OUT_CHECK", "EVALS"]) {
-    assert.ok(capstone.includes('selectedNode === "' + key + '"'), "capstone diagram does not highlight " + key);
+  for (const key of ["IN_CHECK", "RAG", "LLM", "TOOLS", "OUT_CHECK"]) {
+    assert.ok(capstone.includes('key: "' + key + '"'), "capstone request path does not map selected layer " + key);
   }
+  assert.ok(capstone.includes('selectedNode === "ROUTER"'), "capstone diagram does not highlight cache/routing");
+  assert.ok(capstone.includes('key: "EVALS"'), "capstone diagram does not highlight evaluation");
 });
 
 test("text architecture diagrams match optional components and trust boundaries", () => {
