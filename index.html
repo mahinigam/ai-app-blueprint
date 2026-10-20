@@ -1106,13 +1106,13 @@ def run_agent_loop(user_goal: str, principal, max_steps: int = 5) -> str:
                         q: "SCENARIO: In a system design interview, the interviewer asks: 'Walk me through what happens when a user clicks Send in your AI app, and tell me the latency budget of each box.' How do you answer?",
                         symptom: "Candidates draw a single box labeled 'OpenAI API' and fail the senior architecture bar.",
                         rootCause: "Lack of production pipeline decomposition.",
-                        fix: "Walk through the exact 5-pillar diagram with concrete budgets: Profile the path end to end: input checks -> retrieval/reranking -> routing -> model time-to-first-token -> tool calls -> output validation -> trace delivery. Set per-component p50/p95 budgets from measurements; asynchronous evaluation still needs bounded queues and backpressure."
+                        fix: "Describe the request path that actually exists in your system: identity and policy checks, optional retrieval, model call, optional tool execution, output validation, and response. Measure p50/p95 at the component and end-to-end levels, define budgets from user requirements, and account for queueing, retries, and asynchronous evaluation."
                     },
                     {
                         q: "SCENARIO: Production costs spike 4x overnight, latency doubles, and Eval faithfulness drops by 10%. How do you use the 5-Pillar Architecture to triage the incident in 5 minutes?",
                         symptom: "Simultaneous cost, latency, and quality regression after a release.",
-                        rootCause: "A broken chunker or prompt prefix change caused massive noisy RAG chunks to bust the prefix cache and confuse the LLM.",
-                        fix: "Check telemetry per pillar: 1) Did Prefix Cache hit rate drop in Pillar #2? 2) Did RAG chunk token count explode in Pillar #1? 3) Did Agent loop step count spike in Pillar #5? Isolating metrics by the 5 pillars pinpoints any failure immediately."
+                        rootCause: "Several causes are plausible: a retrieval/indexing change, prompt-cache eligibility change, traffic or model mix shift, tool-loop growth, or an upstream provider incident. Treat the first explanation as a hypothesis to test, not a confirmed cause.",
+                        fix: "Build a timeline and compare changes against a known-good baseline. Segment cost, p95 latency, error rates, cache telemetry, retrieved-token counts, tool-step counts, and evaluation results by model, route, tenant, and release. Use those signals to narrow hypotheses; no single pillar metric identifies every failure."
                     }
                 ]
             }
