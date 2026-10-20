@@ -2062,9 +2062,9 @@ const MASTER_QUIZ_QUESTIONS = [
             const cy = h / 2;
             ctx.clearRect(0, 0, w, h);
 
-            if (w < 620) {
-                renderCompactSchematic(w, h, cx, cy);
-            } else if (currentModuleIndex === 0) renderModule0Hook(w, h, cx, cy);
+            // Every module owns its compact layout. Keep a single dispatch path so
+            // desktop and mobile render the same concept, with responsive geometry.
+            if (currentModuleIndex === 0) renderModule0Hook(w, h, cx, cy);
             else if (currentModuleIndex === 1) renderModule1RAG(w, h, cx, cy);
             else if (currentModuleIndex === 2) renderModule2Cost(w, h, cx, cy);
             else if (currentModuleIndex === 3) renderModule3Evals(w, h, cx, cy);
@@ -2088,7 +2088,7 @@ const MASTER_QUIZ_QUESTIONS = [
             ];
             drawCanvasCaption("DESIGN QUESTIONS · NOT A UNIVERSAL STACK", cx, 22, w - 28, "center", true);
 
-            if (w < 540) {
+            if (w < 620) {
                 const left = 26;
                 const cardW = Math.max(180, w - 54);
                 const top = 55;
@@ -2153,7 +2153,7 @@ const MASTER_QUIZ_QUESTIONS = [
             ];
             drawCanvasCaption("RAG · RETRIEVAL IS A SEARCH STEP, NOT A TRUTH GUARANTEE", cx, 22, w - 28, "center", true);
 
-            if (w < 560) {
+            if (w < 620) {
                 const boxW = Math.max(210, w - 44);
                 const top = 46;
                 const step = Math.min(62, (h - 96) / stages.length);
@@ -2195,7 +2195,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 { id: "MEDIUM", label: "BALANCED", sub: "Mixed complexity" },
                 { id: "BIG", label: "HIGHER CAPABILITY", sub: "Harder reasoning" }
             ];
-            if (w < 560) {
+            if (w < 620) {
                 const boxW = Math.max(210, w - 48);
                 const prefixY = 48;
                 const routerY = 121;
@@ -2235,7 +2235,7 @@ const MASTER_QUIZ_QUESTIONS = [
             const pct = Math.round((passCount / Math.max(1, simState.mod3Grid.length)) * 100);
             drawCanvasCaption("EVALUATION IS A TEST SET + RUBRIC + FAILURE REVIEW", cx, 22, w - 28, "center", true);
 
-            if (w < 560) {
+            if (w < 620) {
                 drawTechBox(cx, 66, Math.min(222, w - 44), 48, "DEMO RESULT · " + pct + "%", passCount + " / " + simState.mod3Grid.length + " sample cases", false, true);
                 const cellSize = Math.min(25, (w - 72) / 5 - 4);
                 const gap = 5;
@@ -2314,7 +2314,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 (simState.mod4AttackType === "hallucination" ? 3 : -1);
             drawCanvasCaption("TRUST BOUNDARIES LIVE IN APPLICATION CODE", cx, 22, w - 28, "center", true);
 
-            if (w < 560) {
+            if (w < 620) {
                 const boxW = Math.max(208, w - 46);
                 const top = 48;
                 const step = Math.min(62, (h - 96) / nodes.length);
@@ -2357,7 +2357,7 @@ const MASTER_QUIZ_QUESTIONS = [
             const active = simState.mod5Step % nodes.length;
             drawCanvasCaption("A TOOL CALL IS A REQUEST · THE BACKEND OWNS EXECUTION", cx, 22, w - 28, "center", true);
 
-            if (w < 560) {
+            if (w < 620) {
                 const boxW = Math.max(210, w - 44);
                 const top = 48;
                 const step = Math.min(70, (h - 102) / nodes.length);
@@ -2387,7 +2387,7 @@ const MASTER_QUIZ_QUESTIONS = [
 
         // SCENE 6: PUTTING IT ALL TOGETHER (= AN AI APP)
         function renderModule6FullStack(w, h, cx, cy) {
-            const compact = w < 560;
+            const compact = w < 620;
             drawCanvasCaption("REFERENCE FLOW · OPTIONAL COMPONENTS ARE WORKLOAD-DEPENDENT", cx, 22, w - 28, "center", true);
 
             if (compact) {
