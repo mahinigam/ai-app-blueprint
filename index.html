@@ -2228,8 +2228,8 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (w < 620) {
                 const boxW = Math.max(210, w - 44);
-                const top = 46;
-                const step = Math.min(62, (h - 96) / stages.length);
+                const top = 62;
+                const step = Math.min(62, (h - 112) / stages.length);
                 stages.forEach((stage, i) => {
                     const y = top + i * step;
                     if (i > 0) drawFlowConnector(cx, y - step + 23, cx, y - 23, simState.mod1Clustered && i === 3);
@@ -2250,7 +2250,7 @@ const MASTER_QUIZ_QUESTIONS = [
             });
 
             drawCanvasCaption("EVIDENCE CANDIDATES", cx, cy + 72, w - 28, "center", true);
-            const docLabels = ["DOC · 100", "DOC · 102", "DOC · 104", "DOC · 106", "DOC · 108", "DOC · 110"];
+            const docLabels = ["DOC_100", "DOC_101", "DOC_102", "DOC_103", "DOC_104", "DOC_105"];
             const chipW = Math.min(90, (w - 52 - 5 * 8) / 6);
             const chipGap = (w - chipW * 6) / 7;
             docLabels.forEach((label, i) => {
@@ -2270,9 +2270,9 @@ const MASTER_QUIZ_QUESTIONS = [
             ];
             if (w < 620) {
                 const boxW = Math.max(210, w - 48);
-                const prefixY = 48;
-                const routerY = 121;
-                const tierTop = 207;
+                const prefixY = 62;
+                const routerY = 129;
+                const tierTop = 209;
                 const tierStep = Math.min(58, (h - tierTop - 42) / 3);
                 drawTechBox(cx, prefixY, boxW, 46, simState.mod2CacheEnabled ? "REUSABLE PREFIX" : "REQUEST PREFIX", simState.mod2CacheEnabled ? "Cache candidate · verify hit" : "Request-specific tokens", simState.mod2CacheEnabled, true);
                 drawFlowConnector(cx, prefixY + 24, cx, routerY - 24, simState.mod2CacheEnabled);
@@ -2389,8 +2389,8 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (w < 620) {
                 const boxW = Math.max(208, w - 46);
-                const top = 48;
-                const step = Math.min(62, (h - 96) / nodes.length);
+                const top = 62;
+                const step = Math.min(62, (h - 108) / nodes.length);
                 nodes.forEach((node, i) => {
                     const y = top + i * step;
                     if (i > 0) drawFlowConnector(cx, y - step + 23, cx, y - 23, i === blockedIndex);
@@ -2432,8 +2432,8 @@ const MASTER_QUIZ_QUESTIONS = [
 
             if (w < 620) {
                 const boxW = Math.max(210, w - 44);
-                const top = 48;
-                const step = Math.min(70, (h - 102) / nodes.length);
+                const top = 62;
+                const step = Math.min(70, (h - 110) / nodes.length);
                 nodes.forEach((node, i) => {
                     const y = top + i * step;
                     if (i > 0) drawFlowConnector(cx, y - step + 23, cx, y - 23, active === i);
