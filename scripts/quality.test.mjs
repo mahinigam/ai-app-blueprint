@@ -220,6 +220,11 @@ test("technical references use HTTPS", () => {
   const urls = [...html.matchAll(/https:\/\/[A-Za-z0-9./_?=&%#-]+/g)].map((match) => match[0]);
   assert.ok(urls.length >= 8, "expected primary technical references and project metadata");
   assert.ok(urls.every((url) => url.startsWith("https://")));
+  assert.ok(html.includes("https://genai.owasp.org/llmrisk/llm062025-excessive-agency/"));
+  assert.ok(!html.includes("llmrisk2023-24/llm08-excessive-agency"));
+  for (const guide of ["prompt-caching", "latency-optimization", "evals", "function-calling"]) {
+    assert.ok(html.includes("https://developers.openai.com/api/docs/guides/" + guide), "missing current OpenAI guide: " + guide);
+  }
 });
 
 test("examples enforce access boundaries before model context and tool execution", () => {
