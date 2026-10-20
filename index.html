@@ -309,7 +309,7 @@
             <div class="lg:col-span-5 flex flex-col">
                 <div class="blueprint-card flex flex-col h-full">
                     <!-- Sub-Navigation Tabs for the Right Panel -->
-                    <div class="grid grid-cols-4 border-b border-dashed border-zinc-800 font-mono-tech text-xs bg-zinc-950/60">
+                    <div class="grid grid-cols-2 md:grid-cols-5 border-b border-dashed border-zinc-800 font-mono-tech text-xs bg-zinc-950/60">
                         <button onclick="switchDetailTab('atoz')" id="tab-atoz" class="py-3 px-2 text-center hover:text-white transition active-subtab">
                             [CONCEPTS]
                         </button>
@@ -321,6 +321,9 @@
                         </button>
                         <button onclick="switchDetailTab('interview')" id="tab-interview" class="py-3 px-2 text-center text-zinc-400 hover:text-white transition">
                             [INCIDENTS]
+                        </button>
+                        <button onclick="switchDetailTab('ship')" id="tab-ship" class="py-3 px-2 text-center text-zinc-400 hover:text-white transition">
+                            [SHIP CHECK]
                         </button>
                     </div>
 
@@ -580,25 +583,25 @@ QUESTION: {query}"""
                 visHeader: "PREFIX KV-CACHE + MULTI-TIER MODEL ROUTER",
                 atoz: {
                     background: "In production, two things inflate your LLM bill and latency: (1) Repeating the exact same 8,000 tokens of system instructions, few-shot examples, and tool schemas on every single API call, and (2) Using a high-capability model for every request, including routine classification or formatting that a cheaper model may handle. Compare current provider prices and task-specific quality before choosing a tier.",
-                    mentalModel: "1. PROMPT CACHING (Reuse the same long prefix): LLMs compute Key-Value (KV) attention matrices token-by-token from left to right. If the first 90% of your prompt (System Prompt + Static Docs + Tools) is identical across requests, the provider caches that KV state in GPU memory. You get up to 75-90% discount and 3x faster Time-To-First-Token—ONLY if you put static content at the VERY BEGINNING (prefix) and dynamic user text at the end!\n2. MODEL ROUTING (Small task -> Small model): A lightweight classifier or embedding router inspects the incoming query and dispatches easy queries to a Small model, moderate ones to Medium, and complex reasoning to a Big model.",
+                    mentalModel: "1. PROMPT CACHING (Reuse the same long prefix): Prompt caching may reduce repeated-input cost and time to first token when a provider recognizes a reusable prefix. Exact eligibility, cache duration, minimum prefix length, and discounts vary by provider and model; measure cache-hit rate and billed tokens instead of assuming a fixed saving.\n2. MODEL ROUTING (Small task -> Small model): A lightweight classifier or embedding router inspects the incoming query and dispatches easy queries to a Small model, moderate ones to Medium, and complex reasoning to a Big model.",
                     useCases: [
                         "High-volume SaaS chatbots where 70% of queries are simple FAQ/intent lookups and 30% require multi-step synthesis.",
                         "Agentic workflows where the same 15,000-token codebase context or schema definition is queried 20 times in a session.",
                         "Real-time voice AI agents requiring <400ms Time-To-First-Token (TTFT)."
                     ],
                     bestPractices: [
-                        "Strict Prompt Ordering for Prefix Caching: ALWAYS structure prompts as `[Static System Prompt] -> [Static Tool Schemas] -> [Static Few-Shot Examples] -> [Dynamic RAG Context] -> [Dynamic User Query]`. Changing even 1 token in line 1 invalidates the entire prefix cache!",
-                        "Add a Semantic Cache (Redis/Vector) in front of the router to return instant 0ms cached answers for frequently asked identical questions.",
+                        "Keep stable prompt sections consistent where the provider supports prefix caching. Put request-specific content in the appropriate later section when compatible with the API, then confirm cache behavior from telemetry; do not assume every edit invalidates every provider cache.",
+                        "Consider semantic caching only when near-equivalent queries can safely share an answer. Include tenant, user permissions, model and prompt version, and freshness in the cache design; validate false matches before returning cached responses.",
                         "Implement Cascading Fallback: If the Small model outputs low confidence or fails schema validation, automatically retry with the Big model."
                     ]
                 },
                 arch: {
                     summary: "Request passes through Prefix Cache alignment -> Complexity Router -> Tiered Model Execution.",
                     flowSteps: [
-                        { step: "1. PROMPT PREFIX ALIGNMENT", detail: "Lock static instructions & schemas into the first N tokens (>1024 tokens) so GPU KV-Cache hits automatically." },
-                        { step: "2. SEMANTIC CACHE CHECK", detail: "Has an equivalent question been answered in the last hour? If cosine > 0.96, return cached answer in 12ms." },
+                        { step: "1. PROMPT PREFIX ALIGNMENT", detail: "Keep static content stable to improve cache eligibility where supported; verify actual hit rates and provider-specific prefix requirements." },
+                        { step: "2. SEMANTIC CACHE CHECK", detail: "Only reuse an answer when the cache's equivalence threshold, identity scope, permissions, and freshness rules make that response safe. Choose thresholds through offline evaluation and measure observed latency." },
                         { step: "3. ROUTER CLASSIFIER", detail: "Fast classifier scores query complexity (0.0 to 1.0) based on token length, domain intent, and reasoning depth." },
-                        { step: "4. TIERED DISPATCH", detail: "Score < 0.3 -> SMALL (Flash-Lite/Haiku) | 0.3-0.7 -> MEDIUM (Flash/4o-mini) | > 0.7 -> BIG (Pro/Sonnet/o3)." }
+                        { step: "4. TIERED DISPATCH", detail: "Illustrative routing thresholds only. Calibrate routes against representative examples and monitor answer quality, latency, and spend by route." }
                     ],
                     ascii: `[STATIC PREFIX (Cached KV)] + [DYNAMIC USER QUERY]
                      │
@@ -617,7 +620,7 @@ QUESTION: {query}"""
                     explanation: "Keep stable instructions together where provider caching supports it, but verify cache behavior and billing in telemetry. A stable prefix makes caching more likely, not guaranteed.",
                     snippet: `STATIC_SYSTEM_PREFIX = """You are an enterprise financial assistant...
 [Imagine 4,000 tokens of static company rules, schemas, and few-shot examples here.
-Because this prefix never changes, the LLM provider caches its KV-state in VRAM!]"""
+A stable prefix may be cached by the provider when its caching rules are satisfied; this example does not guarantee a cache hit.]"""
 
 def classify_complexity(query: str) -> str:
     # Fast heuristic + lightweight classifier
@@ -668,30 +671,30 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
                 tag: "[PROBLEM 03 // IS IT EVEN RIGHT? -> MEASURE IT]",
                 problem: "YOU CAN'T IMPROVE WHAT YOU DON'T MEASURE.",
                 title: "3. MEASURE IT: EVALS & LLM-AS-A-JUDGE",
-                subtitle: "Most teams test prompts by 'vibe checking' 3 examples by hand, tweaking a word, and praying nothing broke in production. Real AI engineering runs automated Eval test suites with LLM-as-a-Judge on every change.",
+                subtitle: "Prompt, model, retrieval, and tool changes can improve one case while regressing another. A versioned evaluation set provides repeatable comparisons; combine deterministic checks with calibrated rubric-based review and inspect errors by category.",
                 visHeader: "AUTOMATED EVAL MATRIX & LLM-AS-JUDGE PIPELINE",
                 atoz: {
                     background: "Prompt, model, retrieval, and tool changes can improve one case while regressing another. A versioned evaluation set gives you repeatable comparisons. Use deterministic assertions for objective rules and rubric-based review for semantic quality; inspect failures rather than relying on a single aggregate score.",
-                    mentalModel: "1. EVALS (Golden Dataset): A curated set of 100 to 500 real-world test cases (Inputs + Expected Reference Facts + Edge Cases) run automatically in CI/CD before any prompt, RAG chunker, or model swap goes live.\n2. LLM-AS-A-JUDGE: You use a strong rubric-guided LLM to grade your app's outputs across specific metrics: Faithfulness (did it hallucinate outside the RAG context?), Relevance (did it answer the user?), and Correctness (does it match ground truth?).",
+                    mentalModel: "1. EVALS (Golden Dataset): A representative, versioned set of cases should cover common paths, edge cases, refusals, permissions, and known failures. Run a fast subset in relevant CI checks and broader, higher-cost evaluations on a schedule or before release.\n2. LLM-AS-A-JUDGE: You use a strong rubric-guided LLM to grade your app's outputs across specific metrics: Faithfulness (did it hallucinate outside the RAG context?), Relevance (did it answer the user?), and Correctness (does it match ground truth?).",
                     useCases: [
                         "Deciding objectively whether upgrading from Model A to Model B improves accuracy on your specific domain.",
                         "Catching prompt regressions in CI/CD pull requests before deploying to customers.",
                         "Evaluating RAG retrieval recall separately from LLM generation faithfulness (The RAG Triad)."
                     ],
                     bestPractices: [
-                        "Combine Code Graders + LLM-as-Judge: Use fast deterministic code checks first (valid JSON, regex, latency < 2s, citation exists) and LLM-as-Judge for semantic quality.",
-                        "Force Binary or Integer Rubrics (Pass/Fail or 1-5 with explicit criteria) instead of asking an LLM judge 'Score this from 1 to 100' (LLMs are terrible at arbitrary 1-100 scales).",
-                        "Require Chain-of-Thought BEFORE the score in your Judge prompt (`reasoning` field first, `pass: bool` second) so the Judge calibrates its verdict."
+                        "Use deterministic graders for objective rules (schema validity, required fields, authorization outcomes, and measured latency budgets); use a calibrated model judge or human review for subjective quality dimensions.",
+                        "Force Binary or Integer Rubrics (Pass/Fail or 1-5 with explicit criteria) instead of asking an LLM judge 'Score this from 1 to 100' (Arbitrary numeric ratings are hard to interpret without anchored criteria).",
+                        "Use a fixed rubric and structured verdict. Calibrate judge outcomes against human-labeled cases, inspect disagreement and bias, and ask for concise evidence tied to criteria—not hidden chain-of-thought."
                     ]
                 },
                 arch: {
                     summary: "Every prompt/model change runs against the Golden Dataset -> Code Graders + LLM Judge -> Regression Gate.",
                     flowSteps: [
-                        { step: "1. GOLDEN DATASET", detail: "100+ curated test cases: {input_query, retrieved_docs, ideal_ground_truth}." },
-                        { step: "2. CANDIDATE PIPELINE RUN", detail: "Run your new prompt/model version across all 100 cases in parallel." },
+                        { step: "1. GOLDEN DATASET", detail: "A versioned evaluation set: {input_query, retrieved_docs, expected_facts, pass_criteria}." },
+                        { step: "2. CANDIDATE PIPELINE RUN", detail: "Run the candidate pipeline against the representative evaluation set, respecting rate limits and cost budgets." },
                         { step: "3. DETERMINISTIC CHECKS", detail: "Assert valid JSON schema, no forbidden words, latency within SLA." },
-                        { step: "4. LLM-AS-A-JUDGE GRADING", detail: "Judge model evaluates Faithfulness (grounded in docs?) & Completeness using a strict rubric." },
-                        { step: "5. CI/CD GATE SCORE", detail: "Aggregate score (e.g. 88% -> 92%). Block deploy if score drops below threshold!" }
+                        { step: "4. LLM-AS-A-JUDGE GRADING", detail: "A calibrated judge estimates faithfulness and completeness using an explicit rubric; compare it periodically with human judgments." },
+                        { step: "5. CI/CD GATE SCORE", detail: "Compare per-metric results with pre-defined release thresholds; review meaningful regressions and uncertainty before rollout." }
                     ],
                     ascii: `[PROMPT / MODEL CHANGE]
            │
@@ -714,7 +717,7 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
                     snippet: `from pydantic import BaseModel
 
 class JudgeVerdict(BaseModel):
-    reasoning: str      # Step-by-step comparison first!
+    evidence: str       # Concise evidence tied to rubric criteria
     is_faithful: bool   # Zero ungrounded hallucinations?
     is_correct: bool    # Matches expected ground truth facts?
 
@@ -722,7 +725,7 @@ JUDGE_SYSTEM_PROMPT = """You are an impartial AI Quality Judge.
 Compare the ACTUAL_OUTPUT against the RETRIEVED_CONTEXT and EXPECTED_FACTS.
 1. Set is_faithful=False if ACTUAL_OUTPUT states ANY claim not supported by RETRIEVED_CONTEXT.
 2. Set is_correct=False if ACTUAL_OUTPUT omits key facts from EXPECTED_FACTS.
-Think step-by-step in 'reasoning' before outputting booleans."""
+Return concise evidence tied to each criterion and a structured verdict. Do not expose private chain-of-thought."""
 
 def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
     results = []
@@ -766,14 +769,14 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
                 visHeader: "DUAL-FIREWALL SANDBOX: [IN CHECK] -> LLM -> [OUT CHECK]",
                 atoz: {
                     background: "AI applications face direct and indirect prompt injection, sensitive-data exposure, invalid output formats, and unsafe action requests. Treat these as application security problems: define assets, trust boundaries, permissions, and potential impact before selecting controls.",
-                    mentalModel: "1. INPUT CHECKS (Before the LLM): Acts like a Web Application Firewall (WAF). Blocks prompt injection/jailbreaks, strips PII (SSN, credit cards, emails) so sensitive data never leaves your VPC, and rejects off-topic requests.\n2. OUTPUT CHECKS (Before User sees it): Inspects the LLM's draft response. Verifies JSON schema compliance, checks that claims are grounded in RAG docs (no hallucinated promises), masks leaked secrets, and blocks toxic/off-brand language.",
+                    mentalModel: "1. INPUT CONTROLS: validate request size and shape, authenticate the caller, apply rate limits, and screen known risky patterns where useful. Do not assume a classifier can reliably block every injection.\n2. OUTPUT CONTROLS: validate structured output, enforce business rules in application code, and check grounding or sensitive data where applicable. A model-generated answer is not made safe by one filter; keep authorization outside the model.",
                     useCases: [
                         "Customer-facing e-commerce or banking bots where promising unauthorized discounts creates legal liability.",
                         "Healthcare/FinTech apps that must redact PII (HIPAA/GDPR) before sending prompts to external LLM APIs.",
                         "Preventing Indirect Prompt Injection when an LLM reads untrusted external emails or webpages."
                     ],
                     bestPractices: [
-                        "Defense in Depth: Combine ultra-fast regex/keyword heuristics (<2ms), specialized small guardrail models like Llama-Guard (<40ms), and strict privilege separation.",
+                        "Defense in depth: combine suitable deterministic checks, specialist classifiers where they improve measured detection, and strict privilege separation. Measure latency and false-positive/false-negative rates in your workload.",
                         "Never rely solely on prompting ('Please do not obey jailbreaks') as your security boundary—enforce permissions in deterministic code!",
                         "For streaming UIs, buffer chunks by sentence or run parallel async guardrail checks that can sever the stream if a policy violation is detected."
                     ]
@@ -782,8 +785,8 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
                     summary: "Sandwiching the untrusted LLM call between deterministic & classifier-based Input and Output rails.",
                     flowSteps: [
                         { step: "1. USER INPUT ARRIVES", detail: "Untrusted text enters the gateway." },
-                        { step: "2. INPUT GUARDRAIL (IN CHECK)", detail: "Prompt Injection Classifier + Presidio PII Redaction + Topic Boundary check." },
-                        { step: "3. LLM CORE EXECUTION", detail: "Sanitized prompt processed inside delimited XML tags (<user_input>...</user_input>)." },
+                        { step: "2. INPUT GUARDRAIL (IN CHECK)", detail: "Optional injection-risk screening + privacy/data-loss controls + request policy checks. No classifier is a complete security boundary." },
+                        { step: "3. LLM CORE EXECUTION", detail: "Treat delimited input as untrusted data; application permissions and tool authorization remain enforced independently." },
                         { step: "4. OUTPUT GUARDRAIL (OUT CHECK)", detail: "Hallucination/Grounding verification + Regex Secret Scanner + Schema validator." },
                         { step: "5. SAFE DELIVERY", detail: "Verified answer returned to user (or safe fallback triggered if blocked)." }
                     ],
@@ -796,7 +799,7 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
                 },
                 code: {
                     title: "guardrails_sandwich.py // Input & Output Security Pipeline",
-                    explanation: "Here we implement both sides of the guardrail sandwich: blocking prompt injection & redacting PII on input, then validating grounding & forbidden commitments on output.",
+                    explanation: "Illustrative teaching example only. Regex matching catches a few known patterns and is not a comprehensive prompt-injection detector or PII scanner. A production design needs tested controls, policy-specific validation, and server-side authorization.",
                     snippet: `import re
 
 INJECTION_PATTERNS = [
@@ -860,7 +863,7 @@ def output_check(llm_draft: str, allowed_max_discount: int = 15) -> tuple[bool, 
                         "Text-to-SQL data analysts that inspect table schemas, run a query, fix syntax errors if SQL fails, and chart the result."
                     ],
                     bestPractices: [
-                        "Always set `max_iterations` (e.g., 5 to 10 steps) and a token budget on every agent loop so a confused agent doesn't loop forever and burn $500.",
+                        "Set explicit maximum steps, wall-clock deadlines, token/spend budgets, and cancellation paths. Values should come from the task's latency and risk budget, not a universal number.",
                         "Design Poka-Yoke (mistake-proof) Tools: Return helpful, actionable error strings to the LLM when a tool fails so the agent can self-correct on the next loop iteration.",
                         "Gate destructive tools (`delete_account`, `transfer_funds`) behind a mandatory Human-in-the-Loop confirmation step."
                     ]
@@ -965,7 +968,7 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                 arch: {
                     summary: "The unified 5-pillar architecture diagram from the reel:",
                     flowSteps: [
-                        { step: "STAGE 1: USER -> INPUT CHECK (#4)", detail: "Sanitize PII, block prompt injections, enforce rate limits (<20ms)." },
+                        { step: "STAGE 1: USER -> INPUT CHECK (#4)", detail: "Validate input, enforce identity, data policy, and rate limits; monitor false positives and latency." },
                         { step: "STAGE 2: ROUTER + CACHE (#2)", detail: "Check semantic cache, align KV prefix cache, route to Small/Med/Big model." },
                         { step: "STAGE 3: RAG (#1) + LLM + TOOLS (#5)", detail: "Stitch embedded context chunks into prompt; execute ReAct tool-calling loop if actions are required." },
                         { step: "STAGE 4: OUTPUT CHECK (#4) -> ANSWER", detail: "Verify citation grounding, schema validity, and safety policy before streaming to user." },
@@ -985,7 +988,7 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                 },
                 code: {
                     title: "full_ai_app_stack.py // Complete 5-Pillar Production Orchestrator",
-                    explanation: "Here is the complete synthesis uniting all 5 pillars from the reel into one clean, observable production class.",
+                    explanation: "This illustrative composition shows how interfaces might connect. It is not a drop-in production service: each adapter, control, timeout, authorization check, trace, and recovery path must be implemented and tested.",
                     snippet: `class ProductionAIApp:
     """1 CONTEXT | 2 COST | 3 EVALS | 4 GUARDRAILS | 5 TOOLS = AN AI APP"""
 
@@ -1040,7 +1043,98 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
             }
         ];
 
-        const MASTER_QUIZ_QUESTIONS = [
+        const SHIP_CHECKLISTS = {
+  0: {
+    goal: "A scoped problem statement and a reasoned choice of the smallest system that meets it.",
+    items: [
+      "Name the user, task, acceptable failure modes, and the business outcome to improve.",
+      "Set measurable quality, latency, availability, privacy, and spend requirements before selecting a model.",
+      "Document data sources, identity boundaries, and which actions the system may request.",
+      "Record why each framework or managed service is needed, including its operational cost and exit path."
+    ],
+    evidence: "A short design note with requirements, a baseline, explicit non-goals, and the main risks.",
+    refs: [{ label: "NIST AI Risk Management Framework", url: "https://www.nist.gov/itl/ai-risk-management-framework" }]
+  },
+  1: {
+    goal: "Every retrieved passage is relevant enough to help, permitted for this user, and traceable to a source.",
+    items: [
+      "Filter by tenant and document permissions before any passage reaches the model.",
+      "Preserve source ID, title, heading, timestamps, table structure, and access metadata during ingestion.",
+      "Measure retrieval recall and ranking quality on labeled representative queries before tuning chunk sizes.",
+      "Test lexical or hybrid search for exact identifiers, rare names, and quoted strings.",
+      "Require evidence-based answers and a safe abstention path when retrieved sources do not support a claim.",
+      "Test deleted, updated, duplicated, stale, and maliciously edited source documents."
+    ],
+    evidence: "A retrieval test set, access-control tests, source-level traces, and answer-grounding review.",
+    refs: [{ label: "Microsoft: RAG design and evaluation guide", url: "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-solution-design-and-evaluation-guide" }, { label: "pgvector documentation", url: "https://github.com/pgvector/pgvector" }]
+  },
+  2: {
+    goal: "The system meets its quality target at an acceptable, measured cost and latency.",
+    items: [
+      "Measure baseline tokens, model calls, cache hits, p50/p95 latency, error rate, and cost per task.",
+      "Check provider-specific cache eligibility and billing in telemetry; do not assume stable prompts guarantee a hit.",
+      "Evaluate routing thresholds on representative cases and report quality, latency, and spend separately for each route.",
+      "Test fallback behavior, provider outages, timeouts, malformed output, and rate limits.",
+      "Use a semantic cache only when equivalence, identity, permissions, model version, and freshness checks make reuse safe."
+    ],
+    evidence: "A repeatable benchmark and a before/after report showing quality, latency, and cost rather than a single savings claim.",
+    refs: [{ label: "OpenAI: Prompt caching", url: "https://platform.openai.com/docs/guides/prompt-caching" }, { label: "OpenAI: Latency optimization", url: "https://platform.openai.com/docs/guides/latency-optimization" }]
+  },
+  3: {
+    goal: "A repeatable evaluation suite catches regressions and exposes failure patterns before release.",
+    items: [
+      "Version representative inputs, expected facts, rubrics, and relevant retrieval context.",
+      "Use deterministic assertions for objective constraints and calibrated judges or human review for semantic quality.",
+      "Calibrate the judge against human-labeled examples and investigate disagreements and known bias.",
+      "Report metrics by scenario and risk category, not only one aggregate score.",
+      "Keep evaluation holdouts separate from prompt tuning to reduce test-set overfitting.",
+      "Define release thresholds and uncertainty review before running the candidate version."
+    ],
+    evidence: "Versioned evaluation results, a failure taxonomy, judge-calibration notes, and explicit release criteria.",
+    refs: [{ label: "Microsoft: RAG end-to-end evaluation", url: "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-llm-evaluation-phase" }, { label: "OpenAI: Evals", url: "https://platform.openai.com/docs/guides/evals" }]
+  },
+  4: {
+    goal: "Model output cannot bypass identity, permissions, or deterministic application policy.",
+    items: [
+      "Threat-model direct and indirect prompt injection, sensitive-data disclosure, insecure output handling, and unsafe tool use.",
+      "Enforce authentication and authorization in application code and downstream services—not through prompt instructions.",
+      "Treat retrieved text and tool results as untrusted data; delimiters and classifiers are defense in depth only.",
+      "Validate structured output, business rules, destinations, and data exports before execution or delivery.",
+      "Log security-relevant events with privacy-aware redaction and test for false positives and false negatives.",
+      "Require explicit human approval for high-impact or irreversible actions."
+    ],
+    evidence: "A threat model, access-control tests, adversarial cases, audit traces, and documented residual risk.",
+    refs: [{ label: "OWASP GenAI Security Project: LLM risks", url: "https://genai.owasp.org/llm-top-10/" }, { label: "OWASP: Excessive agency", url: "https://genai.owasp.org/llmrisk2023-24/llm08-excessive-agency/" }]
+  },
+  5: {
+    goal: "Tool calls are narrowly scoped, authorized, bounded, observable, and safe to retry.",
+    items: [
+      "Validate tool names and arguments server-side, then authorize the action against the current user's permissions.",
+      "Give each tool least privilege and return only the data needed for the next step.",
+      "Add timeouts, bounded retries, typed errors, cancellation, maximum steps, and per-task spend limits.",
+      "Use idempotency keys for retriable writes; do not block all duplicate calls if an operation is legitimately repeatable.",
+      "Require confirmation for destructive, financial, external-communication, or otherwise high-impact actions.",
+      "Test partial failures, replayed requests, malicious tool output, and attempts to access another user's data."
+    ],
+    evidence: "Authorization and idempotency tests, a bounded failure demo, and trace records for every tool call.",
+    refs: [{ label: "OpenAI: Function calling", url: "https://platform.openai.com/docs/guides/function-calling" }, { label: "OWASP: Excessive agency", url: "https://genai.owasp.org/llmrisk2023-24/llm08-excessive-agency/" }]
+  },
+  6: {
+    goal: "The end-to-end system has explicit acceptance criteria and fails safely when a dependency is unavailable.",
+    items: [
+      "Trace a request across retrieval, model selection, tools, validation, and response with a correlation ID.",
+      "Define service objectives for quality, p95 latency, availability, and cost per successful task.",
+      "Test timeouts, retries, rate limits, provider errors, empty retrieval, invalid output, and graceful fallbacks.",
+      "Keep secrets server-side, minimize retained sensitive data, and document retention and deletion behavior.",
+      "Run the same evaluation and security suite against the integrated build, not only isolated components.",
+      "Document rollout, rollback, alert ownership, and how production failures become new tests."
+    ],
+    evidence: "An end-to-end test report, operational dashboard or trace sample, release/rollback plan, and known-limitations list.",
+    refs: [{ label: "OpenTelemetry documentation", url: "https://opentelemetry.io/docs/" }, { label: "Microsoft: RAG design and evaluation", url: "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-solution-design-and-evaluation-guide" }]
+  }
+};
+
+const MASTER_QUIZ_QUESTIONS = [
             {
                 question: "1. Your company uploaded 10,000 internal PDFs, but when users search for exact error code 'ERR-409-B', your embedding vector search returns irrelevant documents. Which fix directly solves this?",
                 options: [
@@ -1224,7 +1318,7 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
 
         function switchDetailTab(tabName) {
             currentDetailTab = tabName;
-            ['atoz', 'arch', 'code', 'interview'].forEach(t => {
+            ['atoz', 'arch', 'code', 'interview', 'ship'].forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
                 if (t === tabName) {
                     el.classList.add('active-subtab');
@@ -1314,6 +1408,7 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                                 [COPY CODE]
                             </button>
                         </div>
+                        <div class="border border-dashed border-zinc-700 bg-zinc-950/70 p-2.5 text-[11px] text-zinc-400 leading-relaxed"><span class="font-mono-tech text-white">ILLUSTRATIVE EXAMPLE</span> — not a drop-in production implementation. Mock adapters and provider helpers are omitted; add server-side authorization, secret handling, timeouts, retries, tracing, and tests for your workload.</div>
                         <p class="text-xs text-zinc-300 leading-relaxed">${mod.code.explanation}</p>
                         <div class="bg-black border border-dashed border-zinc-700 p-3.5 overflow-x-auto">
                             <pre id="codeBlockPre" class="font-mono-tech text-xs text-zinc-100 leading-relaxed">${escapeHtml(mod.code.snippet)}</pre>
@@ -1347,6 +1442,39 @@ def run_agent_loop(user_goal: str, max_steps: int = 5) -> str:
                                 </div>
                             </div>
                         `).join('')}
+                    </div>
+                `; 
+            } else if (currentDetailTab === 'ship') {
+                const checklist = SHIP_CHECKLISTS[currentModuleIndex];
+                const referenceLinks = checklist.refs.map(ref => `
+                    <a href="${ref.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 border border-dashed border-zinc-700 hover:border-white px-2.5 py-1.5 text-xs text-zinc-300 hover:text-white transition">
+                        ${ref.label} <span aria-hidden="true">↗</span>
+                    </a>
+                `).join('');
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="border-l-2 border-white pl-3 py-1">
+                            <div class="font-mono-tech text-[11px] text-zinc-400 uppercase tracking-widest">EXIT CRITERIA // SHIP CHECK</div>
+                            <p class="mt-1.5 text-sm leading-relaxed text-zinc-100">${checklist.goal}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="font-mono-tech text-[11px] text-zinc-400 uppercase tracking-widest">VERIFY BEFORE SHIPPING</div>
+                            ${checklist.items.map((item, idx) => `
+                                <label class="flex items-start gap-3 border border-dashed border-zinc-800 bg-zinc-950/60 p-3 text-xs sm:text-sm leading-relaxed text-zinc-200 cursor-pointer hover:border-zinc-500 transition">
+                                    <input type="checkbox" class="mt-1 shrink-0 accent-white" aria-label="${escapeHtml(item)}">
+                                    <span><span class="font-mono-tech text-[10px] text-zinc-500 mr-2">0${idx + 1}</span>${item}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                        <div class="border border-dashed border-zinc-700 bg-zinc-950 p-3">
+                            <div class="font-mono-tech text-[11px] uppercase text-white mb-1">EVIDENCE TO KEEP</div>
+                            <p class="text-xs leading-relaxed text-zinc-300">${checklist.evidence}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="font-mono-tech text-[11px] uppercase tracking-widest text-zinc-400">PRIMARY REFERENCES</div>
+                            <div class="flex flex-wrap gap-2">${referenceLinks}</div>
+                        </div>
+                        <p class="font-mono-tech text-[10px] text-zinc-500">LOCAL SESSION ONLY · CHECKMARKS ARE NOT SAVED · ADAPT TO YOUR STACK AND RISK PROFILE</p>
                     </div>
                 `;
             }
