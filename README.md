@@ -53,3 +53,15 @@ node scripts/check-static.mjs
 The check validates inline JavaScript syntax, duplicate static HTML IDs, module and tab wiring, ship-check coverage, quiz structure, and reduced-motion support. GitHub Actions runs the same check on pushes to `main` and `final-quality-pass`, and on pull requests targeting `main`.
 
 This is a static smoke check, not a replacement for browser testing. Before release, verify responsive layouts and exercise module navigation, each simulator, the quiz, and every detail tab in current desktop and mobile browsers.
+
+## Quality checks
+
+Node.js 22 or newer can run the dependency-free static checks:
+
+```bash
+node --test scripts/quality.test.mjs
+```
+
+The test suite verifies that the inline JavaScript parses, the seven modules and all five detail tabs are wired, the ship-check data is present, key responsive/accessibility controls remain in the source, and known unqualified performance claims do not return. GitHub Actions runs this check on pull requests to `main`.
+
+These tests are deliberately a baseline, not a substitute for browser testing. Before release, also check the deployed experience at desktop, tablet, and narrow mobile widths; operate all module controls and tabs; confirm external references; and inspect keyboard and screen-reader behavior.
