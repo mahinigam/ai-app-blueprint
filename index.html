@@ -2167,7 +2167,9 @@ const MASTER_QUIZ_QUESTIONS = [
             const cy = h / 2;
             ctx.clearRect(0, 0, w, h);
 
-            if (currentModuleIndex === 0) renderModule0Hook(w, h, cx, cy);
+            if (w < 620) {
+                renderCompactSchematic(w, h, cx, cy);
+            } else if (currentModuleIndex === 0) renderModule0Hook(w, h, cx, cy);
             else if (currentModuleIndex === 1) renderModule1RAG(w, h, cx, cy);
             else if (currentModuleIndex === 2) renderModule2Cost(w, h, cx, cy);
             else if (currentModuleIndex === 3) renderModule3Evals(w, h, cx, cy);
