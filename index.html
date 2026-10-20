@@ -166,7 +166,7 @@
                                 <span class="inline-block w-2 h-2 bg-white rounded-full animate-ping"></span>
                             </div>
                             <h1 class="font-mono-tech text-base sm:text-lg font-bold tracking-tight text-white">
-                                AI ENGINEERING: THE 5 CORE PROBLEMS
+                                AI ENGINEERING: THE 5 ENGINEERING LENSES
                             </h1>
                         </div>
                     </div>
@@ -210,15 +210,15 @@
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div class="space-y-1">
                     <div class="flex items-center gap-2 text-xs font-mono-tech text-zinc-400">
-                        <span id="currentModuleTag">[MODULE 00 // THE PARADIGM SHIFT]</span>
+                        <span id="currentModuleTag">[MODULE 00 // START HERE]</span>
                         <span>•</span>
-                        <span id="currentProblemStatement">PROBLEM: OVERWHELMED BY 100+ FRAMEWORKS?</span>
+                        <span id="currentProblemStatement">GOAL: CHOOSE TOOLS FROM REQUIREMENTS</span>
                     </div>
                     <h2 id="currentModuleTitle" class="text-xl sm:text-2xl font-bold font-mono-tech tracking-tight text-white">
                         LEARN THE PROBLEMS. CHOOSE THE TOOLS.
                     </h2>
                     <p id="currentModuleSubtitle" class="text-sm text-zinc-300 max-w-3xl leading-relaxed">
-                        Frameworks change every week. Fundamental engineering problems don't. Every production AI application is simply the composition of solving 5 structural bottlenecks.
+                        Five engineering lenses help structure the design; they are not a complete production checklist.
                     </p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
@@ -261,7 +261,7 @@
                     <!-- Interactive Live Telemetry / Simulation Console -->
                     <div class="mt-4 bg-zinc-950 border border-dashed border-zinc-800 p-3 font-mono-tech text-xs">
                         <div class="flex items-center justify-between text-zinc-400 border-b border-dashed border-zinc-900 pb-1.5 mb-2">
-                            <span>// LIVE SIMULATION TELEMETRY</span>
+                            <span>// SIMULATED TRACE · ILLUSTRATIVE VALUES</span>
                             <span id="simStatusBadge" class="text-white bg-zinc-900 px-2 py-0.5 border border-zinc-700">STATE: READY</span>
                         </div>
                         <div id="simConsoleOutput" class="text-zinc-300 space-y-1 leading-relaxed min-h-[64px]">
@@ -405,9 +405,9 @@
              ▼  (First-Principles Collapse)
 ┌────────────────────────────────────────────────────────┐
 │ 1. GIVE IT CONTEXT   ──► RAG + Embeddings              │
-│ 2. CUT THE COST      ──► Prompt Caching + Model Router │
-│ 3. MEASURE IT        ──► Evals + LLM-as-Judge          │
-│ 4. GUARDRAILS        ──► Input Check + Output Check    │
+│ 2. LATENCY & COST      ──► Prompt Caching + Model Router │
+│ 3. EVALUATION        ──► Evals + LLM-as-Judge          │
+│ 4. SECURITY        ──► Input Check + Output Check    │
 │ 5. TOOLS + AGENTS    ──► Function Calling + Agent Loop │
 └────────────────────────────────────────────────────────┘`
                 },
@@ -642,8 +642,9 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
     tier = classify_complexity(user_query)
     selected_model = MODEL_MAP[tier]["name"]
 
-    # CRITICAL FOR PROMPT CACHING:
-    # Static prefix MUST come first. Dynamic RAG & user query go at the very end!
+    # Illustrative routing/caching example only; replace these relative weights with current provider pricing.
+    # Keep cache-compatible static prefixes stable where supported; verify behavior through telemetry.
+    # Dynamic RAG context and user input vary by request. go at the very end!
     messages = [
         {"role": "system", "content": STATIC_SYSTEM_PREFIX}, # <-- Cache behavior depends on provider and request prefix
         {"role": "user", "content": f"Context:\\n{dynamic_rag_docs}\\n\\nQuery: {user_query}"}
@@ -1647,7 +1648,7 @@ const MASTER_QUIZ_QUESTIONS = [
                     out.innerHTML = `> Developer cognitive load: <span class="text-white font-bold">CRITICAL</span>. Chasing 32+ competing frameworks without architectural structure.<br>> Click <span class="underline">[COLLAPSE TO 5 PROBLEMS]</span> above to organize every tool into the 5 core engineering pillars.`;
                 } else {
                     badge.textContent = "STATE: UNIFIED (5 CORE PROBLEMS)";
-                    out.innerHTML = `> Every tool snapped into its true architectural job: <span class="text-white">[1. CONTEXT] [2. COST] [3. EVALS] [4. GUARDRAILS] [5. AGENTS]</span>.<br>> Tools change every quarter; these 5 structural interfaces remain permanent.`;
+                    out.innerHTML = ` > Each dependency should map to a requirement: <span class="text-white">[1. CONTEXT] [2. COST] [3. EVALUATION] [4. SECURITY] [5. ACTION]</span>.<br>> Treat these as useful design lenses, not permanent or exhaustive interfaces.`;
                 }
             } else if (currentModuleIndex === 1) {
                 if (!simState.mod1Clustered) {
@@ -1658,15 +1659,15 @@ const MASTER_QUIZ_QUESTIONS = [
                     out.innerHTML = `> Query embedded into vector space -> Cosine similarity clusters <span class="text-white font-bold">11 relevant private chunks</span> (Top-K >= 0.82).<br>> Stitched into prompt prefix -> Output: <span class="text-white font-bold">100% GROUNDED ANSWER</span> with verifiable [Doc_ID] citations.`;
                 }
             } else if (currentModuleIndex === 2) {
-                const costMap = { SMALL: '$0.08/1M', MEDIUM: '$0.40/1M', BIG: '$10.00/1M' };
-                const latMap = { SMALL: '170ms', MEDIUM: '420ms', BIG: '1,950ms' };
-                const discount = simState.mod2CacheEnabled ? '85% KV-PREFIX CACHE HIT (3x faster TTFT)' : '0% CACHE (Recomputing 8,000 prefix tokens every call!)';
+                const costMap = { SMALL: 'RELATIVE LOW', MEDIUM: 'RELATIVE MID', BIG: 'RELATIVE HIGH' };
+                const latMap = { SMALL: 'RELATIVE FAST', MEDIUM: 'RELATIVE MID', BIG: 'RELATIVE SLOW' };
+                const discount = simState.mod2CacheEnabled ? 'SIMULATED CACHE HIT (SAVINGS VARY)' : 'SIMULATED CACHE MISS (PREFIX REPROCESSED)';
                 badge.textContent = `ROUTE: ${simState.mod2TaskSize} MODEL | CACHE: ${simState.mod2CacheEnabled ? 'HIT' : 'MISS'}`;
-                out.innerHTML = `> Prefix Status: <span class="text-white">${discount}</span><br>> Router Dispatch: Task routed to <span class="text-white font-bold">[${simState.mod2TaskSize} MODEL]</span> -> Cost: ${costMap[simState.mod2TaskSize]} | Est. Latency: ${latMap[simState.mod2TaskSize]}.`;
+                out.innerHTML = `> Prefix Status: <span class="text-white">${discount}</span><br>> Router Dispatch: Task routed to <span class="text-white font-bold">[${simState.mod2TaskSize} MODEL]</span> - > Relative cost tier: ${costMap[simState.mod2TaskSize]} | Relative latency tier: ${latMap[simState.mod2TaskSize]} (illustrative).`;
             } else if (currentModuleIndex === 3) {
-                const score = simState.mod3Version === 'v2_grounded' ? '88% (22/25 PASSED)' : '56% (14/25 PASSED - DEPLOY BLOCKED)';
+                const score = simState.mod3Version === 'v2_grounded' ? '88% (22/25 DEMO CASES)' : '56% (14/25 DEMO CASES)';
                 badge.textContent = `EVAL SCORE: ${score}`;
-                out.innerHTML = `> Running 25 Golden Dataset cases through <span class="text-white font-bold">LLM-as-a-Judge</span> rubric (Faithfulness + Completeness).<br>> Verdict: ${simState.mod3Version === 'v2_grounded' ? '<span class="text-white font-bold">CI GATE PASSED ✓</span> — Safe to ship to production.' : '<span class="underline">CI GATE REJECTED ✗</span> — 11 regressions detected. Run this on every change!'}`;
+                out.innerHTML = ` > Demo evaluation: 25 illustrative cases using a rubric for faithfulness and completeness.<br>> Verdict: ${simState.mod3Version === 'v2_grounded' ? '<span class="text-white font-bold">DEMO GATE PASSED ✓</span> — verify your own release criteria before shipping.' : '<span class="underline">DEMO GATE REJECTED ✗</span> — sample failures detected; inspect the failing cases.'}`;
             } else if (currentModuleIndex === 4) {
                 if (simState.mod4AttackType === 'safe') {
                     badge.textContent = "RAIL STATUS: ALL CHECKS PASSED ✓";
@@ -1808,7 +1809,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 { label: "2. CUT COST", sub: "Cache + Routing", angle: -Math.PI / 2 + (Math.PI * 2) / 5 },
                 { label: "3. MEASURE", sub: "Evals + Judge", angle: -Math.PI / 2 + (Math.PI * 4) / 5 },
                 { label: "4. GUARDRAILS", sub: "In + Out Checks", angle: -Math.PI / 2 + (Math.PI * 6) / 5 },
-                { label: "5. AGENTS", sub: "Tools + Loop", angle: -Math.PI / 2 + (Math.PI * 8) / 5 }
+                { label: "5. CONTROLLED ACTION", sub: "Tools + Loop", angle: -Math.PI / 2 + (Math.PI * 8) / 5 }
             ];
 
             const orbitRadius = Math.min(w, h) * 0.34;
