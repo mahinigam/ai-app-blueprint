@@ -229,22 +229,22 @@
                     <button onclick="selectModule(0)" id="nav-0" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         00. START HERE
                     </button>
-                    <button onclick="selectModule(1)" id="nav-1" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(1)" id="nav-1" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         01. CONTEXT
                     </button>
-                    <button onclick="selectModule(2)" id="nav-2" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(2)" id="nav-2" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         02. LATENCY & COST
                     </button>
-                    <button onclick="selectModule(3)" id="nav-3" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(3)" id="nav-3" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         03. EVALUATION
                     </button>
-                    <button onclick="selectModule(4)" id="nav-4" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(4)" id="nav-4" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         04. SECURITY
                     </button>
-                    <button onclick="selectModule(5)" id="nav-5" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(5)" id="nav-5" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         05. TOOLS
                     </button>
-                    <button onclick="selectModule(6)" id="nav-6" class="module-btn px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
+                    <button onclick="selectModule(6)" id="nav-6" class="module-btn min-h-10 px-3 py-1.5 text-xs font-mono-tech border border-dashed border-zinc-700 text-zinc-300 hover:border-white transition whitespace-nowrap">
                         06. CAPSTONE
                     </button>
                 </nav>
@@ -529,8 +529,8 @@ def handle_production_ai_request(req: AIRequest) -> Dict[str, Any]:
                         "Legal and medical research assistants requiring strict citation back to source paragraphs."
                     ],
                     bestPractices: [
-                        "Use Hybrid Search: Combine Dense Vector Embeddings (semantic meaning) + Sparse BM25 Keyword Search (exact SKU codes, acronyms, error IDs) fused with Reciprocal Rank Fusion (RRF).",
-                        "Chunking Strategy: preserve section and table structure, source IDs, and permissions. Tune chunk size and overlap against representative queries; there is no universally correct token count or overlap percentage.",
+                        "Evaluate hybrid retrieval when dense search misses exact identifiers or rare names. Combine dense and lexical signals, then compare ranking strategies on labeled queries.",
+                        "Chunking strategy: preserve section and table structure, source IDs, and permissions. Tune chunk size and overlap against representative queries; there is no universally correct token count or overlap percentage.",
                         "Evaluate reranking when initial retrieval returns noisy candidates. Choose candidate and final passage counts from retrieval-recall, answer-quality, latency, and cost measurements rather than a fixed Top-K recipe."
                     ]
                 },
@@ -816,7 +816,7 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
                 tag: "[MODULE 04 // SECURITY & SAFETY]",
                 problem: "HOW DO WE KEEP DATA AND ACTIONS WITHIN TRUSTED BOUNDARIES?",
                 title: "4. SECURITY: TRUST BOUNDARIES & VALIDATION",
-                subtitle: "Never expose a raw LLM directly to untrusted user input or show raw LLM tokens directly to users. Wrap the model in an architectural sandwich: USER -> IN CHECK -> LLM -> OUT CHECK.",
+                subtitle: "Do not treat untrusted user input or model output as trusted application data. Validate inputs, enforce permissions in code, and apply output checks appropriate to the use case.",
                 visHeader: "DUAL-FIREWALL SANDBOX: [IN CHECK] -> LLM -> [OUT CHECK]",
                 atoz: {
                     background: "AI applications face direct and indirect prompt injection, sensitive-data exposure, invalid output formats, and unsafe action requests. Treat these as application security problems: define assets, trust boundaries, permissions, and potential impact before selecting controls.",
@@ -1686,8 +1686,18 @@ const MASTER_QUIZ_QUESTIONS = [
             }
 
             ctrl.querySelectorAll('button').forEach(button => {
-                const selected = button.classList.contains('bg-white') && button.classList.contains('text-black');
-                button.setAttribute('aria-pressed', String(selected));
+                const label = button.textContent.trim();
+                const isAction = label.includes('[STEP AGENT LOOP');
+                const isEnabledToggle = label.includes('PREFIX CACHE: ON') || label.includes('AUTO-LOOP: ON');
+                const selected =
+                    (button.classList.contains('bg-white') && button.classList.contains('text-black')) ||
+                    isEnabledToggle;
+
+                if (isAction) {
+                    button.removeAttribute('aria-pressed');
+                } else {
+                    button.setAttribute('aria-pressed', String(selected));
+                }
                 button.classList.add('min-h-9');
             });
         }
@@ -2101,7 +2111,7 @@ const MASTER_QUIZ_QUESTIONS = [
             ctx.font = "bold 11px 'JetBrains Mono', monospace";
             ctx.fillStyle = "#a1a1aa";
             ctx.textAlign = "center";
-            ctx.fillText("FLOW: PREFIX  ──►  ROUTER  ──►  [ SMALL | MEDIUM | BIG ]", cx, h - 20);
+            ctx.fillText("ILLUSTRATIVE FLOW: PREFIX -> ROUTER -> MODEL TIER", cx, h - 20);
             ctx.restore();
         }
 
@@ -2349,7 +2359,7 @@ const MASTER_QUIZ_QUESTIONS = [
             }
         }
 
-        // Keyboard shortcuts (Left/Right arrows to navigate modules, Escape for modal)
+        // Global shortcut: Escape closes the diagnostic dialog. Detail tabs support arrow/Home/End navigation.
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeMasterQuizModal();
         });
