@@ -189,6 +189,17 @@ test("examples do not reintroduce known unqualified performance claims", () => {
   }
 });
 
+test("illustrative evaluation and output-policy contracts agree", () => {
+  assert.ok(html.includes("if not golden_dataset:"), "evaluation example must reject an empty dataset");
+  assert.ok(html.includes('"evidence": verdict.evidence'), "evaluator must read a field defined by JudgeVerdict");
+  assert.ok(!html.includes("verdict.reasoning"), "evaluator must not read an undefined judge field");
+
+  assert.ok(html.includes("def output_check(llm_draft: str, retrieved_docs: list[dict], allowed_max_discount: int)"), "output policy interface should accept source context and a trusted policy limit");
+  assert.ok(html.includes("allowed_max_discount=self.policy.allowed_max_discount"), "capstone should pass trusted policy into the output check");
+  assert.ok(html.includes('status = "ok" if safe else "blocked_out"'), "capstone must not report a blocked answer as successful");
+  assert.ok(!html.includes('return {"status": "ok", "model": model_tier, "answer": final_answer}'), "capstone should preserve output-check failures in status");
+});
+
 test("dynamic HTML and clipboard fallback cleanup are hardened", () => {
   const escapeStart = html.indexOf("function escapeHtml(str)");
   const escapeEnd = html.indexOf("async function copyCurrentCode", escapeStart);
