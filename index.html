@@ -704,7 +704,7 @@ def execute_cost_optimized_call(user_query: str, dynamic_rag_docs: str):
                         q: "SCENARIO: Your Model Router sends 60% of traffic to the Small model, saving $12,000/month, but customer satisfaction silently drops by 15% on subtle edge-case questions. How do you fix the router?",
                         symptom: "Router false-negatives: tricky short questions ('Can I cancel without penalty?') get routed to the Small model which misses contract nuances.",
                         rootCause: "Routing solely on query length or naive keywords misses semantic difficulty.",
-                        fix: "Train a calibrated Router Classifier using your Eval dataset (#3) to predict the probability that the Small model's answer matches the Big model's answer. Also implement Use escalation only when an evaluated confidence or quality signal is calibrated for the task and the benefit outweighs added cost and latency."
+                        fix: "Train and calibrate a router against representative task outcomes. Escalate only when a task-specific quality signal predicts that escalation is worthwhile; evaluate the added cost and latency and provide a safe fallback for uncertain cases."
                     }
                 ]
             },
@@ -883,7 +883,7 @@ def output_check(llm_draft: str, allowed_max_discount: int = 15) -> tuple[bool, 
                         fix: "Treat retrieved content as untrusted evidence, not authority. Use least-privilege tools, server-side authorization, destination allow-lists, data-loss controls, audit logs, and explicit approval for high-impact actions. Scanners and delimiters are defense in depth, not a guarantee."
                     },
                     {
-                        q: "SCENARIO: Adding an LLM-based Input Check and an LLM-based Output Check adds 1.5 seconds of latency to every request, ruining the UX. How do you architect low-latency guardrails?",
+                        q: "SCENARIO: Adding model-based input and output checks materially increases p95 latency. How would you reduce user-visible delay without sending unsafe content?",
                         symptom: "Guardrails double total response latency and token cost.",
                         rootCause: "Running sequential heavy LLM calls for every safety check.",
                         fix: "1) Use tiered rails: 1ms Regex/Deterministic checks + 25ms BERT/RoBERTa fine-tuned small classifiers (like Llama-Guard-8B or DeBERTa injection detectors) instead of frontier LLMs. 2) Run Input Guardrails in PARALLEL with optimistic LLM execution: start the main LLM stream immediately, and if the fast Input Rail flags a violation at 40ms, abort the main LLM stream before any tokens are flushed to the user."
@@ -1639,10 +1639,10 @@ const MASTER_QUIZ_QUESTIONS = [
             } else if (index === 3) {
                 ctrl.innerHTML = `
                     <button onclick="setMod3Version('v1_vibes')" class="px-2.5 py-1 text-xs font-mono-tech border border-dashed ${simState.mod3Version === 'v1_vibes' ? 'bg-white text-black font-bold' : 'border-zinc-600 text-zinc-300'}">
-                        [PROMPT V1: UNTESTED (56%)]
+                        [DEMO SET A: 56%]
                     </button>
                     <button onclick="setMod3Version('v2_grounded')" class="px-2.5 py-1 text-xs font-mono-tech border border-dashed ${simState.mod3Version === 'v2_grounded' ? 'bg-white text-black font-bold' : 'border-zinc-600 text-zinc-300'}">
-                        [PROMPT V2: EVAL VERIFIED (88%)]
+                        [DEMO SET B: 88%]
                     </button>
                 `;
             } else if (index === 4) {
@@ -1948,7 +1948,7 @@ const MASTER_QUIZ_QUESTIONS = [
             });
 
             if (!simState.mod0Collapsed) {
-                drawTechBox(cx, cy, 160, 44, "100+ TOOLS?", "CLICK ABOVE TO COLLAPSE", true);
+                drawTechBox(cx, cy, 160, 44, "TOOL ECOSYSTEM", "COMPARE BY REQUIREMENT", true);
             } else {
                 // Draw the five-lens design review
                 ctx.save();
@@ -2028,7 +2028,7 @@ const MASTER_QUIZ_QUESTIONS = [
             const bottomY = h - 38;
             drawTechBox(w * 0.2, bottomY, 130, 34, "EMBED QUERY", "Search by meaning", false);
             drawTechBox(w * 0.5, bottomY, 140, 34, "RAG STITCHING", "Add Top-K to prompt", simState.mod1Clustered);
-            drawTechBox(w * 0.8, bottomY, 145, 34, simState.mod1Clustered ? "GROUNDED ANSWER" : "UNGROUNDED GUESS", simState.mod1Clustered ? "Verified via RAG" : "Hallucination risk", simState.mod1Clustered);
+            drawTechBox(w * 0.8, bottomY, 145, 34, simState.mod1Clustered ? "ANSWER + SOURCES" : "UNSUPPORTED GUESS", simState.mod1Clustered ? "Check source support" : "Grounding risk", simState.mod1Clustered);
 
             drawDottedLine(w * 0.2 + 65, bottomY, w * 0.5 - 70, bottomY, [4, 4], -tick * 0.6, 0.8);
             drawDottedLine(w * 0.5 + 70, bottomY, w * 0.8 - 72, bottomY, [4, 4], -tick * 0.6, 0.8);
@@ -2045,9 +2045,9 @@ const MASTER_QUIZ_QUESTIONS = [
             const modelsX = w * 0.80;
 
             const tiers = [
-                { id: "SMALL", y: cy - 85, label: "SMALL MODEL", sub: "Fast / $0.08 per 1M" },
-                { id: "MEDIUM", y: cy, label: "MEDIUM MODEL", sub: "Balanced / $0.40 per 1M" },
-                { id: "BIG", y: cy + 85, label: "BIG MODEL", sub: "Deep Reason / $10 per 1M" }
+                { id: "SMALL", y: cy - 85, label: "SMALL MODEL", sub: "Relative lower cost" },
+                { id: "MEDIUM", y: cy, label: "MEDIUM MODEL", sub: "Relative mid-tier" },
+                { id: "BIG", y: cy + 85, label: "BIG MODEL", sub: "Relative higher cost" }
             ];
 
             // Connections from Prefix -> Router
@@ -2139,7 +2139,7 @@ const MASTER_QUIZ_QUESTIONS = [
             ctx.font = "bold 11px 'JetBrains Mono', monospace";
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
-            ctx.fillText("EVALS: GOLDEN TEST SET SCORED ON EVERY COMMIT", cx, h - 18);
+            ctx.fillText("DEMO GRID: ILLUSTRATIVE EVALUATION CASES", cx, h - 18);
             ctx.restore();
         }
 
@@ -2147,9 +2147,9 @@ const MASTER_QUIZ_QUESTIONS = [
         function renderModule4Guardrails(w, h, cx, cy) {
             const nodes = [
                 { x: w * 0.14, label: "USER", sub: "Raw Input" },
-                { x: w * 0.38, label: "IN CHECK", sub: "Block Injection" },
+                { x: w * 0.38, label: "IN CHECK", sub: "Risk screening" },
                 { x: w * 0.62, label: "LLM", sub: "Core Model" },
-                { x: w * 0.86, label: "OUT CHECK", sub: "Block Unsafe" }
+                { x: w * 0.86, label: "OUT CHECK", sub: "Output validation" }
             ];
 
             // Advance animated packet
@@ -2192,7 +2192,7 @@ const MASTER_QUIZ_QUESTIONS = [
                     ctx.font = "bold 10px 'JetBrains Mono', monospace";
                     ctx.fillStyle = "#ffffff";
                     ctx.textAlign = "center";
-                    ctx.fillText("FIREWALL INTERCEPTED!", n.x, cy - 75);
+                    ctx.fillText("DEMO FLAGGED", n.x, cy - 75);
                     ctx.restore();
                 }
             });
@@ -2272,10 +2272,10 @@ const MASTER_QUIZ_QUESTIONS = [
             const sel = simState.mod6SelectedNode;
             drawTechBox(xs.USER, mainY, 64, 38, "USER", "", false);
             drawTechBox(xs.IN_CHECK, mainY, 96, 44, "IN CHECK", "4. Guardrail", sel === 'IN_CHECK');
-            drawTechBox(xs.ROUTER, mainY, 112, 44, "ROUTER+CACHE", "2. Cut Cost", sel === 'ROUTER');
+            drawTechBox(xs.ROUTER, mainY, 112, 44, "ROUTER+CACHE", "2. Latency + Cost", sel === 'ROUTER');
             drawTechBox(xs.LLM, mainY, 96, 48, "LLM", "Core Engine", sel === 'LLM');
             drawTechBox(xs.OUT_CHECK, mainY, 96, 44, "OUT CHECK", "4. Guardrail", sel === 'OUT_CHECK');
-            drawTechBox(xs.ANSWER, mainY, 68, 38, "ANSWER", "= AI APP", true);
+            drawTechBox(xs.ANSWER, mainY, 68, 38, "RESPONSE", "Output", true);
 
             // Top RAG Box
             drawTechBox(ragNode.x, ragNode.y, 130, 44, "1. RAG CONTEXT", "Embeddings + Docs", sel === 'RAG');
