@@ -1854,7 +1854,7 @@ const MASTER_QUIZ_QUESTIONS = [
         function wrapCanvasText(text, maxWidth, font, maxLines = 2) {
             ctx.save();
             ctx.font = font;
-            const words = String(text || "").trim().split(/\\s+/).filter(Boolean);
+            const words = String(text || "").trim().split(/\s+/).filter(Boolean);
             if (!words.length) { ctx.restore(); return []; }
             const lines = [];
             let line = "";
@@ -2097,9 +2097,11 @@ const MASTER_QUIZ_QUESTIONS = [
                 drawTechBox(cx, prefixY, boxW, 46, simState.mod2CacheEnabled ? "REUSABLE PREFIX" : "REQUEST PREFIX", simState.mod2CacheEnabled ? "Cache candidate · verify hit" : "Request-specific tokens", simState.mod2CacheEnabled, true);
                 drawFlowConnector(cx, prefixY + 24, cx, routerY - 24, simState.mod2CacheEnabled);
                 drawTechBox(cx, routerY, boxW, 46, "MODEL ROUTER", "Choose from task + evals", false, true);
+                const spineX = cx - boxW / 2 - 12;
+                drawDottedLine(spineX, routerY + 26, spineX, tierTop + tierStep * 2, [2, 5], 0, 0.38);
                 tiers.forEach((tier, i) => {
                     const y = tierTop + i * tierStep;
-                    drawFlowConnector(cx, routerY + 24, cx, y - 22, simState.mod2TaskSize === tier.id);
+                    drawFlowConnector(spineX, y, cx - boxW / 2 - 7, y, simState.mod2TaskSize === tier.id);
                     drawTechBox(cx, y, boxW, 44, tier.label, tier.sub, simState.mod2TaskSize === tier.id, true);
                 });
                 drawCanvasCaption("CACHE HITS AND ROUTING GAINS MUST BE MEASURED", cx, h - 16, w - 20);
