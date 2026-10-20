@@ -51,6 +51,39 @@ test("responsive and accessibility safeguards remain present", () => {
   assert.ok(html.includes("aria-label=\"Learning modules\""));
 });
 
+test("all diagrams use one responsive path and defined module renderers", () => {
+  const renderers = [
+    "renderModule0Hook",
+    "renderModule1RAG",
+    "renderModule2Cost",
+    "renderModule3Evals",
+    "renderModule4Guardrails",
+    "renderModule5Agents",
+    "renderModule6FullStack"
+  ];
+
+  const dispatcherStart = html.indexOf("function renderScene()");
+  const dispatcherEnd = html.indexOf("// SCENE 0:", dispatcherStart);
+  assert.ok(dispatcherStart >= 0 && dispatcherEnd > dispatcherStart, "diagram dispatcher exists");
+  const dispatcher = html.slice(dispatcherStart, dispatcherEnd);
+
+  assert.ok(!dispatcher.includes("renderCompactSchematic"), "dispatcher must not call a removed compact renderer");
+  for (const renderer of renderers) {
+    assert.ok(html.includes("function " + renderer + "("), "missing diagram renderer: " + renderer);
+    assert.ok(dispatcher.includes(renderer), "dispatcher does not route to " + renderer);
+  }
+
+  const rendererStart = html.indexOf("function renderModule0Hook");
+  const rendererEnd = html.indexOf("function openMasterQuizModal", rendererStart);
+  assert.ok(rendererStart >= 0 && rendererEnd > rendererStart, "module renderer block exists");
+  const moduleRenderers = html.slice(rendererStart, rendererEnd);
+  const compactLayouts = [
+    ...moduleRenderers.matchAll(/if\\s*\\(\\s*w\\s*<\\s*620\\s*\\)|const compact = w < 620;/g)
+  ];
+  assert.equal(compactLayouts.length, 7, "each module must use the shared 620px compact-layout breakpoint");
+  assert.ok(!/w\\s*<\\s*(540|560)\\b/.test(moduleRenderers), "stale diagram breakpoints found");
+});
+
 test("examples do not reintroduce known unqualified performance claims", () => {
   const forbidden = [
     "100% CACHE HIT",
