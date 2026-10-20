@@ -1,0 +1,23 @@
+name: Validate static app
+
+on:
+  push:
+    branches: [main, final-quality-pass]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate inline JavaScript and app structure
+        run: node scripts/check-static.mjs
