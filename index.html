@@ -447,16 +447,17 @@
                         { step: "04 / SECURITY", detail: "Enforce identity and authorization in application code; layer privacy checks and output validation without treating filters as guarantees." },
                         { step: "05 / ACTION", detail: "Expose narrowly scoped tools, validate and authorize every call, bound retries and cost, and use an agent loop only when needed." }
                     ],
-                    ascii: `  [ PRODUCT REQUIREMENTS ]
-             │
-             ▼  (Design Constraints)
-┌────────────────────────────────────────────────────────┐
-│ 1. CONTEXT & RETRIEVAL ──► Evidence + Access Filters              │
-│ 2. PERFORMANCE         ──► Measured Cache + Routing │
-│ 3. EVALUATION          ──► Tests + Regression Review          │
-│ 4. SECURITY            ──► Identity + Policy + Validation    │
-│ 5. ACTION               ──► Authorized Tools + Limits + AGENTS    ──► Function Calling + Agent Loop │
-└────────────────────────────────────────────────────────┘`
+                    ascii: `  [ PRODUCT REQUIREMENTS + RISK ]
+                  │
+                  ▼
+┌──────────────────────────────────────────────────────┐
+│ 01  CONTEXT       → Permitted evidence + provenance  │
+│ 02  PERFORMANCE   → Measured latency + cost           │
+│ 03  EVALUATION    → Versioned tests + release gates   │
+│ 04  SECURITY      → Identity + policy + validation    │
+│ 05  ACTION        → Authorized tools + bounded steps  │
+└──────────────────────────────────────────────────────┘
+ CROSS-CUTTING: RELIABILITY · OBSERVABILITY · DEPLOYMENT`
                 },
                 code: {
                     title: "request_pipeline.py // Illustrative System Interfaces",
@@ -1909,6 +1910,111 @@ const MASTER_QUIZ_QUESTIONS = [
             ctx.restore();
         }
 
+        function renderCompactSchematic(w, h, cx, cy) {
+            let nodes = [];
+            let footer = "ILLUSTRATIVE FLOW · MEASURE YOUR WORKLOAD";
+
+            if (currentModuleIndex === 0) {
+                nodes = simState.mod0Collapsed ? [
+                    { label: "01 / CONTEXT", sub: "Evidence + access", active: true },
+                    { label: "02 / PERFORMANCE", sub: "Latency + cost" },
+                    { label: "03 / EVALUATION", sub: "Tests + regression" },
+                    { label: "04 / SECURITY", sub: "Identity + policy" },
+                    { label: "05 / ACTION", sub: "Authorized tools" }
+                ] : [
+                    { label: "DEFINE REQUIREMENTS", sub: "User, quality, latency, risk", active: true },
+                    { label: "MAP CAPABILITIES", sub: "Only what the use case needs" },
+                    { label: "ASSESS TRADE-OFFS", sub: "Cost, failure modes, ownership" },
+                    { label: "MEASURE THE BASELINE", sub: "Evidence before optimization" }
+                ];
+                footer = simState.mod0Collapsed ? "FIVE LENSES · NOT A UNIVERSAL STACK" : "START WITH THE REQUIREMENT · NOT THE TOOL LIST";
+            } else if (currentModuleIndex === 1) {
+                nodes = simState.mod1Clustered ? [
+                    { label: "USER QUERY", sub: "Authenticated request" },
+                    { label: "FILTER + RETRIEVE", sub: "Only permitted source passages", active: true },
+                    { label: "BUILD CONTEXT", sub: "Source IDs + relevant evidence" },
+                    { label: "ANSWER + VERIFY", sub: "Cite support or abstain" }
+                ] : [
+                    { label: "USER QUERY", sub: "Question without evidence" },
+                    { label: "MODEL GENERATION", sub: "No retrieval context", active: true },
+                    { label: "UNSUPPORTED CLAIM", sub: "Grounding risk" }
+                ];
+                footer = "RETRIEVAL QUALITY ≠ ANSWER QUALITY";
+            } else if (currentModuleIndex === 2) {
+                nodes = [
+                    { label: simState.mod2CacheEnabled ? "STABLE PREFIX" : "PREFIX REPROCESSED", sub: simState.mod2CacheEnabled ? "Cache-eligible, not guaranteed" : "Cache disabled in this demo", active: simState.mod2CacheEnabled },
+                    { label: "TASK ROUTER", sub: "Choose against quality targets" },
+                    { label: simState.mod2TaskSize + " MODEL TIER", sub: "Relative cost/latency example", active: true },
+                    { label: "MEASURE RESULTS", sub: "Quality · p95 latency · spend" }
+                ];
+                footer = "SIMULATION ONLY · NO LIVE PROVIDER METRICS";
+            } else if (currentModuleIndex === 3) {
+                const passed = simState.mod3Grid.filter(item => item.passed).length;
+                nodes = [
+                    { label: "VERSIONED EVAL SET", sub: "Representative, repeatable cases" },
+                    { label: "DETERMINISTIC CHECKS", sub: "Schemas + objective constraints" },
+                    { label: "CALIBRATED REVIEW", sub: "Judge + human comparison" },
+                    { label: "DEMO: " + passed + "/25 CASES PASS", sub: "Illustrative fixture result", active: true }
+                ];
+                footer = "DEMO FIXTURES · NOT A LIVE BENCHMARK";
+            } else if (currentModuleIndex === 4) {
+                const injected = simState.mod4AttackType === "injection";
+                const outputRisk = simState.mod4AttackType === "hallucination";
+                nodes = [
+                    { label: "USER INPUT", sub: "Untrusted by default" },
+                    { label: "IDENTITY + POLICY", sub: injected ? "Demo flags a risky input" : "Authentication + request checks", active: injected },
+                    { label: "MODEL", sub: "No security boundary" },
+                    { label: "OUTPUT VALIDATION", sub: outputRisk ? "Demo flags output pattern" : "Schema + source support", active: outputRisk },
+                    { label: "DELIVER OR FALL BACK", sub: "Application policy decides" }
+                ];
+                footer = "FILTERS HELP · SERVER-SIDE POLICY ENFORCES";
+            } else if (currentModuleIndex === 5) {
+                if (simState.mod5AutoLoop && tick % 75 === 0) {
+                    simState.mod5Step = (simState.mod5Step + 1) % 4;
+                    updateSimTelemetry();
+                }
+                const stages = [
+                    { label: "MODEL PROPOSES TOOL", sub: "Structured request" },
+                    { label: "VALIDATE + AUTHORIZE", sub: "User, resource, policy" },
+                    { label: "EXECUTE BOUNDED ACTION", sub: "Least privilege + idempotency" },
+                    { label: "OBSERVE OR STOP", sub: "Deadline · budget · exit rule" }
+                ];
+                nodes = stages.map((stage, index) => ({ ...stage, active: index === simState.mod5Step }));
+                footer = "THE BACKEND OWNS EXECUTION PERMISSIONS";
+            } else {
+                nodes = [
+                    { label: "REQUEST + IDENTITY", sub: "Authenticate and scope access" },
+                    { label: "CONTEXT IF NEEDED", sub: "Permission-filtered retrieval" },
+                    { label: "MODEL + ROUTING", sub: "Optional tools within policy", active: true },
+                    { label: "VALIDATE OUTPUT", sub: "Schema · grounding · policy" },
+                    { label: "RESPONSE + TRACE", sub: "Observable, safe failure path" }
+                ];
+                footer = "EVALS · RELIABILITY · OBSERVABILITY · DEPLOYMENT";
+            }
+
+            const boxWidth = Math.max(180, Math.min(w - 36, 420));
+            const boxHeight = nodes.length >= 5 ? 34 : 38;
+            const gap = nodes.length >= 5 ? 10 : 13;
+            const flowHeight = nodes.length * boxHeight + (nodes.length - 1) * gap;
+            const startY = Math.max(28, (h - flowHeight - 38) / 2);
+            const centers = nodes.map((node, index) => startY + boxHeight / 2 + index * (boxHeight + gap));
+
+            for (let index = 0; index < centers.length - 1; index++) {
+                drawDottedLine(cx, centers[index] + boxHeight / 2, cx, centers[index + 1] - boxHeight / 2, [3, 4], -tick * 0.4, 0.65);
+            }
+            nodes.forEach((node, index) => {
+                drawTechBox(cx, centers[index], boxWidth, boxHeight, node.label, node.sub, Boolean(node.active), true);
+            });
+
+            ctx.save();
+            ctx.font = "10px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "#a1a1aa";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(footer, cx, h - 17, Math.max(120, w - 20));
+            ctx.restore();
+        }
+
         function renderScene() {
             tick += 1;
             const w = canvas.width / (window.devicePixelRatio || 1);
@@ -1922,7 +2028,9 @@ const MASTER_QUIZ_QUESTIONS = [
             drawDottedLine(cx, 0, cx, h, [2, 8], 0, 0.12);
             drawDottedLine(0, cy, w, cy, [2, 8], 0, 0.12);
 
-            if (currentModuleIndex === 0) {
+            if (w < 620) {
+                renderCompactSchematic(w, h, cx, cy);
+            } else if (currentModuleIndex === 0) {
                 renderModule0Hook(w, h, cx, cy);
             } else if (currentModuleIndex === 1) {
                 renderModule1RAG(w, h, cx, cy);
