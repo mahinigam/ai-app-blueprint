@@ -96,6 +96,9 @@ test("interactive diagrams stay in sync with their controls", () => {
   assert.ok(autoLoop.includes("clearInterval"), "auto-loop should be cancellable");
   assert.ok(autoLoop.includes("currentModuleIndex === 5"), "auto-loop should run only while its module is active");
   assert.ok(autoLoop.includes("document.visibilityState === 'visible'"), "auto-loop should pause while the page is hidden");
+  assert.ok(autoLoop.includes("prefers-reduced-motion"), "auto-loop should respect reduced-motion preference");
+  assert.ok(html.includes("function stopMod5AutoLoop"), "agent auto-loop must have a shared stop path");
+  assert.ok(html.includes("if (motionPreference.matches && simState.mod5AutoLoop)"), "changing to reduced motion must stop the auto-loop");
 
   const capstoneStart = html.indexOf("function renderModule6FullStack");
   const capstoneEnd = html.indexOf("function openMasterQuizModal", capstoneStart);
