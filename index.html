@@ -609,8 +609,8 @@ QUESTION: {query}"""
                     },
                     {
                         q: "SCENARIO: Why shouldn't we just dump all 500 company documents into a 1M-token context window instead of building RAG?",
-                        symptom: "18-second Time-To-First-Token, $0.80 per query cost, and degraded recall in the middle of the prompt.",
-                        rootCause: "'Lost in the Middle' attention dilution + quadratic/linear KV compute cost on massive prompts.",
+                        symptom: "High time-to-first-token and cost per request, with weaker answers for some facts positioned deep in a very large context.",
+                        rootCause: "Long prompts can increase processing cost and latency, and models may not use all positions equally well. The effect depends on model, task, prompt content, and workload.",
                         fix: "Long context and retrieval can be alternatives or complements. Large prompts may raise latency and cost, while retrieval can miss important evidence. Compare both approaches on your corpus using answer quality, recall, latency, and total cost; do not assume fixed percentage gains."
                     }
                 ]
@@ -629,7 +629,7 @@ QUESTION: {query}"""
                     useCases: [
                         "High-volume SaaS chatbots where 70% of queries are simple FAQ/intent lookups and 30% require multi-step synthesis.",
                         "Agentic workflows where the same 15,000-token codebase context or schema definition is queried 20 times in a session.",
-                        "Real-time voice AI agents requiring <400ms Time-To-First-Token (TTFT)."
+                        "Real-time voice AI with a strict time-to-first-token target; define the target from user experience testing and measure end-to-end latency."
                     ],
                     bestPractices: [
                         "Keep stable prompt sections consistent where the provider supports prefix caching. Put request-specific content in the appropriate later section when compatible with the API, then confirm cache behavior from telemetry; do not assume every edit invalidates every provider cache.",
@@ -784,7 +784,7 @@ def run_eval_suite(golden_dataset: list[dict], app_pipeline_fn) -> dict:
         results.append({"id": case["id"], "passed": passed, "reason": verdict.reasoning})
 
     score = sum(1 for r in results if r["passed"]) / len(results)
-    assert score >= 0.85, f"CI BLOCKED: Eval score {score:.0%} dropped below 85% baseline!"
+    MIN_PASS_RATE = 0.85  # Illustrative threshold; set from task risk and evaluation evidence\n    assert score >= MIN_PASS_RATE, f"Release review required: score {score:.0%} is below configured target {MIN_PASS_RATE:.0%}"
     return {"score": score, "details": results}`
                 },
                 interviews: [
@@ -2074,7 +2074,7 @@ const MASTER_QUIZ_QUESTIONS = [
                 140,
                 64,
                 simState.mod2CacheEnabled ? "CACHED PREFIX" : "RAW PREFIX",
-                simState.mod2CacheEnabled ? "KV Reused (-85% $)" : "Recomputed Every Call",
+                simState.mod2CacheEnabled ? "CACHE CANDIDATE" : "PREFIX REPROCESSED",
                 simState.mod2CacheEnabled
             );
 
@@ -2131,8 +2131,8 @@ const MASTER_QUIZ_QUESTIONS = [
             const pct = Math.round((passCount / 25) * 100);
 
             drawDottedLine(startX + gridW + 10, cy - 35, rightX - 75, cy - 35, [4, 4], -tick * 0.5, 0.8);
-            drawTechBox(rightX, cy - 35, 150, 52, "LLM-AS-JUDGE", "Grades every output", true);
-            drawTechBox(rightX, cy + 45, 150, 56, `SCORE: ${pct}%`, "Run on every change", pct >= 85);
+            drawTechBox(rightX, cy - 35, 150, 52, "RUBRIC JUDGE", "Sample evaluation", true);
+            drawTechBox(rightX, cy + 45, 150, 56, `DEMO: ${pct}%`, "Illustrative fixtures", false);
 
             ctx.save();
             ctx.font = "bold 11px 'JetBrains Mono', monospace";
