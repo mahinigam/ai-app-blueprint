@@ -78,10 +78,10 @@ test("all diagrams use one responsive path and defined module renderers", () => 
   assert.ok(rendererStart >= 0 && rendererEnd > rendererStart, "module renderer block exists");
   const moduleRenderers = html.slice(rendererStart, rendererEnd);
   const compactLayouts = [
-    ...moduleRenderers.matchAll(/if\\s*\\(\\s*w\\s*<\\s*620\\s*\\)|const compact = w < 620;/g)
+    ...moduleRenderers.matchAll(/if\s*\(\s*w\s*<\s*620\s*\)|const compact = w < 620;/g)
   ];
   assert.equal(compactLayouts.length, 7, "each module must use the shared 620px compact-layout breakpoint");
-  assert.ok(!/w\\s*<\\s*(540|560)\\b/.test(moduleRenderers), "stale diagram breakpoints found");
+  assert.ok(!/w\s*<\s*(540|560)\b/.test(moduleRenderers), "stale diagram breakpoints found");
 });
 
 test("examples do not reintroduce known unqualified performance claims", () => {
