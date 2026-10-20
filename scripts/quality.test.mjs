@@ -109,6 +109,34 @@ test("interactive diagrams stay in sync with their controls", () => {
   assert.ok(capstone.includes('key: "EVALS"'), "capstone diagram does not highlight evaluation");
 });
 
+test("compact diagram captions, node spacing, and source IDs remain aligned", () => {
+  const rendererBlock = (start, end) => {
+    const from = html.indexOf(start);
+    const to = html.indexOf(end, from);
+    assert.ok(from >= 0 && to > from, "renderer exists: " + start);
+    return html.slice(from, to);
+  };
+
+  const rag = rendererBlock("function renderModule1RAG", "// SCENE 2:");
+  assert.ok(rag.includes("const top = 62;"), "RAG nodes need clearance below the wrapped header");
+  assert.ok(rag.includes("(h - 112) / stages.length"), "RAG layout should preserve footer clearance");
+  for (const id of ["DOC_100", "DOC_101", "DOC_102", "DOC_103", "DOC_104", "DOC_105"]) {
+    assert.ok(rag.includes('"' + id + '"'), "retrieval chip ID must match demo source ID " + id);
+  }
+
+  const routing = rendererBlock("function renderModule2Cost", "// SCENE 3:");
+  assert.ok(routing.includes("const prefixY = 62;"));
+  assert.ok(routing.includes("const routerY = 129;"));
+  assert.ok(routing.includes("const tierTop = 209;"));
+
+  const security = rendererBlock("function renderModule4Guardrails", "// SCENE 5:");
+  const agent = rendererBlock("function renderModule5Agents", "// SCENE 6:");
+  const capstone = rendererBlock("function renderModule6FullStack", "function openMasterQuizModal");
+  assert.ok(security.includes("const top = 62;"), "security nodes should not collide with the header");
+  assert.ok(agent.includes("const top = 62;"), "agent nodes should not collide with the header");
+  assert.ok(capstone.includes("const top = 62;"), "capstone nodes should not collide with the header");
+});
+
 test("text architecture diagrams match optional components and trust boundaries", () => {
   assert.ok(html.includes("Provider-specific cache eligibility; hits are not guaranteed"));
   assert.ok(html.includes("[OPTIONAL CACHE / MODEL ROUTING]"));
