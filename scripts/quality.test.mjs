@@ -93,10 +93,13 @@ test("interactive diagrams stay in sync with their controls", () => {
   assert.ok(autoStart >= 0 && autoEnd > autoStart, "agent auto-loop handler exists");
   const autoLoop = html.slice(autoStart, autoEnd);
   assert.ok(autoLoop.includes("setInterval"), "auto-loop should advance the sample workflow");
-  assert.ok(autoLoop.includes("clearInterval"), "auto-loop should be cancellable");
   assert.ok(autoLoop.includes("currentModuleIndex === 5"), "auto-loop should run only while its module is active");
   assert.ok(autoLoop.includes("document.visibilityState === 'visible'"), "auto-loop should pause while the page is hidden");
   assert.ok(autoLoop.includes("prefers-reduced-motion"), "auto-loop should respect reduced-motion preference");
+  const stopStart = html.indexOf("function stopMod5AutoLoop");
+  const stopEnd = html.indexOf("function toggleMod5Auto", stopStart);
+  assert.ok(stopStart >= 0 && stopEnd > stopStart, "agent auto-loop stop helper exists");
+  assert.ok(html.slice(stopStart, stopEnd).includes("clearInterval"), "shared stop helper should cancel the timer");
   assert.ok(html.includes("function stopMod5AutoLoop"), "agent auto-loop must have a shared stop path");
   assert.ok(html.includes("if (motionPreference.matches && simState.mod5AutoLoop)"), "changing to reduced motion must stop the auto-loop");
 
