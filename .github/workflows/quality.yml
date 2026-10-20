@@ -2,7 +2,7 @@ name: Static quality checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, final-quality-overhaul]
   pull_request:
     branches: [main]
 
